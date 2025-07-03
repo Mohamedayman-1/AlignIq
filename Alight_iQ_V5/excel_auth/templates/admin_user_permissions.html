@@ -1,0 +1,303 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Permissions | Admin Panel</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h1, h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .button, button {
+      padding: 0.6rem 1.2rem;
+      background-color: #4a6ed0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .button:hover, button:hover {
+      background-color: #3a5bb9;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #status-message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #f5f5f5;
+      font-weight: 500;
+    }
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4a6ed0;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .admin-badge {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .user-badge {
+      background-color: #6c757d;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+  
+  <div class="container">
+    <div class="nav-buttons">
+      <a href="javascript:void(0)" onclick="navigateTo('/template/admin_create_user/')" class="button">Create User</a>
+      <a href="javascript:void(0)" onclick="navigateTo('/dashboard/')" class="button">Back to Dashboard</a>
+    </div>
+    
+    <div class="card">
+      <h2>User Permissions</h2>
+      <div id="status-message"></div>
+      
+      <p>Manage which users can delete files. By default, only administrators can delete files.</p>
+      
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Can Delete Files</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Users will be loaded here -->
+          <tr><td colspan="3">Loading users...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    
+    function navigateTo(path) {
+      window.location.href = `${apiBaseUrl}${path}`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const statusMessage = document.getElementById('status-message');
+      
+      if (!token || userData.role !== 'admin') {
+        window.location.href = `${apiBaseUrl}/`;
+        return;
+      }
+      
+      // Update username display
+      document.getElementById('username').textContent = `Welcome, ${userData.username}`;
+      
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        window.location.href = `${apiBaseUrl}/`;
+      });
+      
+      // Load user list
+      loadUsers();
+      
+      async function loadUsers() {
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/users/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to load users');
+          }
+          
+          const users = await response.json();
+          displayUsers(users);
+        } catch (error) {
+          console.error('Error:', error);
+          statusMessage.textContent = `Error: ${error.message}`;
+          statusMessage.className = 'error';
+          statusMessage.style.display = 'block';
+        }
+      }
+      
+      function displayUsers(users) {
+        const tbody = document.querySelector('#users-table tbody');
+        tbody.innerHTML = '';
+        
+        if (users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3">No users found</td></tr>';
+          return;
+        }
+        
+        users.forEach(user => {
+          const row = document.createElement('tr');
+          
+          // Username with role badge
+          const roleClass = user.role === 'admin' ? 'admin-badge' : 'user-badge';
+          row.innerHTML = `
+            <td>${user.username}</td>
+            <td><span class="${roleClass}">${user.role}</span></td>
+            <td>
+              <label class="switch">
+                <input type="checkbox" ${user.can_delete_files ? 'checked' : ''} 
+                  onchange="updatePermission(${user.id}, this.checked)" 
+                  ${user.role === 'admin' ? 'disabled' : ''}>
+                <span class="slider"></span>
+              </label>
+            </td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+      }
+    });
+    
+    // Make this function global so it can be accessed by the onclick handler
+    async function updatePermission(userId, canDeleteFiles) {
+      const token = localStorage.getItem('authToken');
+      const statusMessage = document.getElementById('status-message');
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/users/${userId}/permissions/`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ can_delete_files: canDeleteFiles })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update permission');
+        }
+        
+        const result = await response.json();
+        statusMessage.textContent = result.message;
+        statusMessage.className = 'success';
+        statusMessage.style.display = 'block';
+        
+        // Hide message after 3 seconds
+        setTimeout(() => {
+          statusMessage.style.display = 'none';
+        }, 3000);
+      } catch (error) {
+        console.error('Error:', error);
+        statusMessage.textContent = `Error: ${error.message}`;
+        statusMessage.className = 'error';
+        statusMessage.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

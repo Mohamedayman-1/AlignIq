@@ -1,0 +1,492 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Splitter | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .page-header {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    .form-container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+    input[type="file"], input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .header-inputs {
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .header-input {
+      flex: 1;
+      margin-right: 0.5rem;
+    }
+    .add-header-btn, .remove-header-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      min-width: 80px;
+    }
+    .add-header-btn {
+      background-color: #28a745;
+      color: white;
+    }
+    .remove-header-btn {
+      background-color: #dc3545;
+      color: white;
+      margin-left: 0.5rem;
+    }
+    .btn-primary {
+      background-color: #3a5bb9;
+      color: white;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 1rem;
+    }
+    .btn-primary:hover {
+      background-color: #2d4aa3;
+    }
+    .btn-primary:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+      display: none;
+    }
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .alert-error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3a5bb9;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .file-info {
+      background-color: #e9ecef;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+      display: none;
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    .step {
+      flex: 1;
+      text-align: center;
+      padding: 1rem;
+      background-color: #e9ecef;
+      color: #6c757d;
+      border-radius: 4px;
+      margin: 0 0.25rem;
+    }
+    .step.active {
+      background-color: #3a5bb9;
+      color: white;
+    }
+    .step.completed {
+      background-color: #28a745;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- Include header -->
+  {% include 'header.html' %}
+  
+  <div class="container">
+    <div class="page-header">
+      <h1>CSV File Splitter</h1>
+      <p>Upload a large CSV file and split it into smaller chunks with custom headers.</p>
+      <div style="background-color: #e7f3ff; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #0066cc;">How it works:</h4>
+        <ol style="margin: 0; padding-left: 1.5rem;">
+          <li>Select your CSV file from your computer</li>
+          <li>Configure the output settings and define column headers</li>
+          <li>The file will be split into smaller chunks and compressed into a ZIP file</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="step-indicator">
+      <div class="step active" id="step1">1. Select CSV File</div>
+      <div class="step" id="step2">2. Configure Split Settings</div>
+      <div class="step" id="step3">3. Process & Download</div>
+    </div>
+
+    <div class="form-container">
+      <form id="csvSplitterForm">
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
+        
+        <!-- Step 1: File Upload -->
+        <div class="form-group">
+          <label for="csvFile">Select CSV File:</label>
+          <input type="file" id="csvFile" accept=".csv" required>
+          <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <!-- Step 2: Configuration -->
+        <div id="configSection" style="display: none;">
+          <div class="two-column">
+            <div class="form-group">
+              <label for="outputDir">Output Directory Name:</label>
+              <input type="text" id="outputDir" placeholder="e.g., output_chunks" value="output_chunks">
+            </div>
+            <div class="form-group">
+              <label for="chunkSize">Chunk Size (rows per file):</label>
+              <input type="number" id="chunkSize" min="10" max="1000000" value="10000">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="inputSeparator">Input Separator:</label>
+            <select id="inputSeparator">
+              <option value=",">Comma (,)</option>
+              <option value=";">Semicolon (;)</option>
+              <option value="\t">Tab (\t)</option>
+              <option value="|">Pipe (|)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Column Headers:</label>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
+              Define the column headers for your CSV file. Add one header per column.
+            </p>
+            <div class="header-inputs" id="headerInputs">
+              <div class="header-row">
+                <input type="text" class="header-input" placeholder="Enter header name" required>
+                <button type="button" class="add-header-btn" onclick="addHeaderInput()">+ Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="loading" id="loadingDiv">
+          <div class="spinner"></div>
+          <p>Processing your CSV file...</p>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submitBtn">Select File and Configure</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    // Ensure BASE_URL is defined - try multiple fallbacks
+    let BASE_URL;
+    try {
+      BASE_URL = (typeof getConfig !== 'undefined') ? getConfig() : 'http://127.0.0.1:8000';
+    } catch (e) {
+      BASE_URL = 'http://127.0.0.1:8000';
+    }
+    console.log('DEBUG: BASE_URL set to:', BASE_URL);
+    
+    let currentStep = 1;
+    let selectedFile = null;
+
+    // File upload handler
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+          showAlert('Please select a CSV file.', 'error');
+          return;
+        }
+        
+        selectedFile = file;
+        
+        const fileInfo = document.getElementById('fileInfo');
+        fileInfo.innerHTML = `
+          <strong>File:</strong> ${file.name}<br>
+          <strong>Size:</strong> ${(file.size / (1024 * 1024)).toFixed(2)} MB<br>
+          <strong>Type:</strong> ${file.type || 'text/csv'}
+        `;
+        fileInfo.style.display = 'block';
+        
+        // Move to configuration step
+        showConfigSection();
+        moveToStep(2);
+        showAlert('File selected successfully! Configure the split settings below.', 'success');
+      }
+    });
+
+    // Show configuration section
+    function showConfigSection() {
+      document.getElementById('configSection').style.display = 'block';
+      document.getElementById('submitBtn').textContent = 'Split CSV File';
+    }
+
+    // Form submission
+    document.getElementById('csvSplitterForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      if (!selectedFile) {
+        showAlert('Please select a CSV file first.', 'error');
+        return;
+      }
+
+      const headers = getHeaders();
+      if (headers.length === 0) {
+        showAlert('Please add at least one header.', 'error');
+        return;
+      }
+
+      const outputDir = document.getElementById('outputDir').value.trim();
+      const chunkSize = parseInt(document.getElementById('chunkSize').value);
+      const inputSep = document.getElementById('inputSeparator').value;
+
+      if (!outputDir) {
+        showAlert('Please enter an output directory name.', 'error');
+        return;
+      }
+
+      if (chunkSize < 10 || chunkSize > 1000000) {
+        showAlert('Chunk size must be between 100 and 1,000,000 rows.', 'error');
+        return;
+      }
+
+      splitCSV(outputDir, headers, chunkSize, inputSep);
+    });
+
+    // Split CSV function
+    function splitCSV(outputDir, headers, chunkSize, inputSep) {
+      console.log('DEBUG: splitCSV called with:', { outputDir, headers, chunkSize, inputSep });
+      console.log('DEBUG: selectedFile:', selectedFile);
+      console.log('DEBUG: BASE_URL:', BASE_URL);
+      
+      showLoading(true);
+      moveToStep(3);
+      
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('output_dir', outputDir);
+      formData.append('header', JSON.stringify(headers));
+      formData.append('chunk_size', chunkSize);
+      formData.append('input_sep', inputSep);
+
+      console.log('DEBUG: FormData contents:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + pair[1]);
+      }
+
+      const apiUrl = `${BASE_URL}/api/split-csv/`;
+      console.log('DEBUG: Calling API URL:', apiUrl);
+      
+      const authToken = localStorage.getItem('authToken');
+      console.log('DEBUG: Auth token:', authToken ? 'Token exists' : 'No token found');
+      console.log('DEBUG: Auth token length:', authToken ? authToken.length : 0);
+
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formData
+      })
+      .then(response => {
+        console.log('DEBUG: Response status:', response.status);
+        console.log('DEBUG: Response headers:', response.headers);
+        return response.json();
+      })
+      .then(data => {
+        console.log('DEBUG: Response data:', data);
+        showLoading(false);
+        if (data.zip_file_path) {
+          showAlert(`CSV split successfully! Files have been compressed to: ${data.zip_file_path.split('/').pop() || data.zip_file_path}`, 'success');
+          document.getElementById('submitBtn').textContent = 'Process Another File';
+          document.getElementById('submitBtn').onclick = function() {
+            location.reload();
+          };
+        } else {
+          showAlert(data.error || 'Failed to split CSV file.', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('DEBUG: Fetch error:', error);
+        showLoading(false);
+        showAlert('Error splitting CSV: ' + error.message, 'error');
+      });
+    }
+
+    // Header management functions
+    function addHeaderInput() {
+      const headerInputs = document.getElementById('headerInputs');
+      const newRow = document.createElement('div');
+      newRow.className = 'header-row';
+      newRow.innerHTML = `
+        <input type="text" class="header-input" placeholder="Enter header name" required>
+        <button type="button" class="remove-header-btn" onclick="removeHeaderInput(this)">Remove</button>
+      `;
+      headerInputs.appendChild(newRow);
+    }
+
+    function removeHeaderInput(button) {
+      const headerInputs = document.getElementById('headerInputs');
+      if (headerInputs.children.length > 1) {
+        button.parentElement.remove();
+      } else {
+        showAlert('At least one header is required.', 'error');
+      }
+    }
+
+    function getHeaders() {
+      const inputs = document.querySelectorAll('.header-input');
+      const headers = [];
+      inputs.forEach(input => {
+        const value = input.value.trim();
+        if (value) {
+          headers.push(value);
+        }
+      });
+      return headers;
+    }
+
+    // UI helper functions
+    function showAlert(message, type) {
+      const alertDiv = document.getElementById(type === 'error' ? 'errorAlert' : 'successAlert');
+      alertDiv.textContent = message;
+      alertDiv.style.display = 'block';
+      
+      // Hide other alert
+      const otherAlert = document.getElementById(type === 'error' ? 'successAlert' : 'errorAlert');
+      otherAlert.style.display = 'none';
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        alertDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    function showLoading(show) {
+      const loadingDiv = document.getElementById('loadingDiv');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      if (show) {
+        loadingDiv.style.display = 'block';
+        submitBtn.disabled = true;
+      } else {
+        loadingDiv.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+
+    function moveToStep(step) {
+      // Reset all steps
+      document.querySelectorAll('.step').forEach(s => {
+        s.classList.remove('active', 'completed');
+      });
+      
+      // Mark completed steps
+      for (let i = 1; i < step; i++) {
+        document.getElementById(`step${i}`).classList.add('completed');
+      }
+      
+      // Mark current step
+      document.getElementById(`step${step}`).classList.add('active');
+      currentStep = step;
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication
+      if (!localStorage.getItem('authToken')) {
+        window.location.href = '/';
+        return;
+      }
+      
+      // Set username in header
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      if (userData.username) {
+        document.getElementById('username').textContent = `Welcome, ${userData.username}`;
+      }
+    });
+
+    // Logout functionality
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>

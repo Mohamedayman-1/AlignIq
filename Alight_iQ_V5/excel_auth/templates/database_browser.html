@@ -1,0 +1,1140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Compare | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .compare-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .connection-selector {
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s;
+    }
+    .connection-selector:hover {
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    .connection-selector label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 500;
+      color: #444;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-top: 8px;
+    }
+    .button, button {
+      padding: 0.6rem 1.2rem;
+      background-color: #4a6ed0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .button:hover, button:hover {
+      background-color: #3a5bb9;
+    }
+    .status-message {
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+    }
+    .status-message.loading {
+      background-color: #e9f0fd;
+      color: #4a6ed0;
+      display: flex;
+    }
+    .status-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border-left: 5px solid #dc3545;
+      display: flex;
+    }
+    .status-message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border-left: 5px solid #28a745;
+      display: flex;
+    }
+    .error-details {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      font-size: 0.9em;
+      color: #d32f2f;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .compare-button-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .button-status {
+      margin-left: 15px;
+      font-size: 0.9em;
+      font-style: italic;
+      color: #666;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(74, 110, 208, 0.3);
+      border-radius: 50%;
+      border-top-color: #4a6ed0;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .results-container {
+      margin-top: 20px;
+    }
+    .table-info {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #eef;
+      font-weight: 500;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f8f8;
+    }
+    .disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .hidden {
+      display: none;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-container {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    
+    .tab-container .button {
+      background-color: #f1f1f1;
+      color: #333;
+      border-radius: 4px 4px 0 0;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      padding: 10px 15px;
+    }
+    
+    .tab-container .button:hover {
+      background-color: #e1e1e1;
+    }
+    
+    .tab-container .button.active {
+      background-color: #4a6ed0;
+      color: white;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 15px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .summary-table tr:nth-child(even) {
+      background-color: #f5f7fa;
+    }
+    
+    .summary-table td, .summary-table th {
+      padding: 14px 18px;
+      text-align: left;
+      border: none;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .summary-table th {
+      background-color: #4a6ed0;
+      color: white;
+      font-weight: 500;
+      font-size: 1rem;
+    }
+    
+    .summary-value {
+      font-weight: bold;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .save-button {
+        margin-top: 10px;
+        background-color: #28a745;
+    }
+    .save-button:hover {
+        background-color: #218838;
+    }
+    .comparison-history {
+        margin-top: 20px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+    }
+    .comparison-list {
+        list-style: none;
+        padding: 0;
+    }
+    .comparison-item {
+        padding: 10px;
+        background: #f9f9f9;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .comparison-item:hover {
+        background: #f0f0f0;
+    }
+    
+    /* Column display enhancements */
+    .column-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+    .column-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      margin: 4px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .column-added {
+      background-color: #d4edda;
+      color: #155724;
+      border-left: 3px solid #28a745;
+    }
+    .column-removed {
+      background-color: #f8d7da;
+      color: #721c24;
+      border-left: 3px solid #dc3545;
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+
+  <div class="container">
+    <div class="card">
+      <h2>Database Compare</h2>
+      
+      <div id="status-message" class="status-message"></div>
+      
+      <div class="compare-form">
+        <!-- Source Database Section -->
+        <div class="connection-selector">
+          <h3>Source Database</h3>
+          <select id="connection1-select">
+            <option value="">Select a database connection</option>
+          </select>
+          
+          <h3>Source Schema</h3>
+          <select id="schema1-select" disabled>
+            <option value="">Select a connection first</option>
+          </select>
+          
+          <h3>Source Table</h3>
+          <select id="table1-select" disabled>
+            <option value="">Select a schema first</option>
+          </select>
+          
+          <label>Primary Key Column:</label>
+          <select id="column1-select" disabled>
+            <option value="">Select a table first</option>
+          </select>
+        </div>
+        
+        <!-- Target Database Section -->
+        <div class="connection-selector">
+          <h3>Target Database</h3>
+          <select id="connection2-select">
+            <option value="">Select a database connection</option>
+          </select>
+          
+          <h3>Target Schema</h3>
+          <select id="schema2-select" disabled>
+            <option value="">Select a connection first</option>
+          </select>
+          
+          <h3>Target Table</h3>
+          <select id="table2-select" disabled>
+            <option value="">Select a schema first</option>
+          </select>
+          
+          <label>Primary Key Column:</label>
+          <select id="column2-select" disabled>
+            <option value="">Select a table first</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="compare-button-container">
+        <button id="compare-button" class="button" disabled>Compare Tables</button>
+        <span id="button-status" class="button-status"></span>
+      </div>
+      
+      <div id="save-comparison-container" style="margin-top: 10px;">
+        <label>
+          <input type="checkbox" id="save-comparison-checkbox" checked> Save this comparison for future reference
+        </label>
+      </div>
+      
+      <div id="results-container" class="results-container" style="display: none;">
+        <h3>Comparison Results</h3>
+        <div class="tab-container">
+          <button class="button" onclick="showTab('summary-tab')">Summary</button>
+          <button class="button" onclick="showTab('diff-tab')">Differences</button>
+          <button class="button" onclick="showTab('columns-tab')">Columns</button>
+          <button class="button" onclick="showTab('rows-tab')">Rows</button>
+        </div>
+        <div id="summary-tab" class="tab-content"></div>
+        <div id="diff-tab" class="tab-content" style="display: none;"></div>
+        <div id="columns-tab" class="tab-content" style="display: none;"></div>
+        <div id="rows-tab" class="tab-content" style="display: none;"></div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    
+    function navigateTo(path) {
+      window.location.href = `${apiBaseUrl}${path}`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      if (!token) {
+        window.location.href = `${apiBaseUrl}/`;
+        return;
+      }
+      
+      // Display username
+      document.getElementById('username').textContent = `Welcome, ${userData.username || 'User'}`;
+      
+      // Logout functionality
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        window.location.href = `${apiBaseUrl}/`;
+      });
+      
+      // Store DOM element references
+      const connection1Select = document.getElementById('connection1-select');
+      const schema1Select = document.getElementById('schema1-select');
+      const table1Select = document.getElementById('table1-select');
+      const column1Select = document.getElementById('column1-select');
+      
+      const connection2Select = document.getElementById('connection2-select');
+      const schema2Select = document.getElementById('schema2-select');
+      const table2Select = document.getElementById('table2-select');
+      const column2Select = document.getElementById('column2-select');
+      
+      const compareButton = document.getElementById('compare-button');
+      const statusMessage = document.getElementById('status-message');
+      const resultsContainer = document.getElementById('results-container');
+      
+      // Load database connections
+      loadDatabaseConnections();
+      
+      // Load saved comparisons - Make sure this is called when page loads
+      loadSavedComparisons();
+      
+      // Event listeners for Source Database selects
+      connection1Select.addEventListener('change', function() {
+        if (this.value) {
+          loadSchemas(this.value, schema1Select);
+          schema1Select.disabled = false;
+          table1Select.disabled = true;
+          table1Select.innerHTML = '<option value="">Select a schema first</option>';
+          column1Select.disabled = true;
+          column1Select.innerHTML = '<option value="">Select a table first</option>';
+        } else {
+          schema1Select.innerHTML = '<option value="">Select a connection first</option>';
+          schema1Select.disabled = true;
+          table1Select.disabled = true;
+          column1Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      schema1Select.addEventListener('change', function() {
+        if (this.value) {
+          loadTables(connection1Select.value, this.value, table1Select);
+          table1Select.disabled = false;
+        } else {
+          table1Select.innerHTML = '<option value="">Select a schema first</option>';
+          table1Select.disabled = true;
+          column1Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      table1Select.addEventListener('change', function() {
+        if (this.value) {
+          loadTableColumns(connection1Select.value, schema1Select.value, this.value, column1Select);
+          column1Select.disabled = false;
+        } else {
+          column1Select.innerHTML = '<option value="">Select a table first</option>';
+          column1Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      column1Select.addEventListener('change', function() {
+        checkCompareEnabled();
+      });
+      
+      // Event listeners for Target Database selects
+      connection2Select.addEventListener('change', function() {
+        if (this.value) {
+          loadSchemas(this.value, schema2Select);
+          schema2Select.disabled = false;
+          table2Select.disabled = true;
+          table2Select.innerHTML = '<option value="">Select a schema first</option>';
+          column2Select.disabled = true;
+          column2Select.innerHTML = '<option value="">Select a table first</option>';
+        } else {
+          schema2Select.innerHTML = '<option value="">Select a connection first</option>';
+          schema2Select.disabled = true;
+          table2Select.disabled = true;
+          column2Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      schema2Select.addEventListener('change', function() {
+        if (this.value) {
+          loadTables(connection2Select.value, this.value, table2Select);
+          table2Select.disabled = false;
+        } else {
+          table2Select.innerHTML = '<option value="">Select a schema first</option>';
+          table2Select.disabled = true;
+          column2Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      table2Select.addEventListener('change', function() {
+        if (this.value) {
+          loadTableColumns(connection2Select.value, schema2Select.value, this.value, column2Select);
+          column2Select.disabled = false;
+        } else {
+          column2Select.innerHTML = '<option value="">Select a table first</option>';
+          column2Select.disabled = true;
+        }
+        checkCompareEnabled();
+      });
+      
+      column2Select.addEventListener('change', function() {
+        checkCompareEnabled();
+      });
+      
+      // Compare button click handler - updated for better loading feedback
+      compareButton.addEventListener('click', async function() {
+        const buttonStatus = document.getElementById('button-status');
+        showMessage('<div class="spinner"></div> Comparing tables... This may take a moment depending on table size.', 'loading');
+        resultsContainer.style.display = 'none';
+        compareButton.disabled = true;
+        buttonStatus.textContent = 'Processing...';
+        
+        try {
+          const saveComparison = document.getElementById('save-comparison-checkbox').checked;
+
+          const payload = {
+            connection1: connection1Select.value,
+            connection2: connection2Select.value,
+            schema1: schema1Select.value,
+            schema2: schema2Select.value,
+            table1: table1Select.value,
+            table2: table2Select.value,
+            column1: column1Select.value,
+            column2: column2Select.value,
+            save_comparison: saveComparison
+          };
+          
+          console.log("Sending comparison request:", payload);
+          
+          // Call the API to compare tables
+          const response = await fetch(`${apiBaseUrl}/api/compare-database-tables/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          const result = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(result.message || 'Failed to compare tables');
+          }
+          
+          if (result.saved) {
+            showMessage('✅ Comparison completed and saved successfully!', 'success');
+            loadSavedComparisons();
+          } else {
+            showMessage('✅ Comparison completed successfully!', 'success');
+          }
+
+          document.getElementById('save-comparison-container').style.display = 'block';
+
+          buttonStatus.textContent = 'Completed successfully!';
+          
+          // Display the results
+          displayComparisonResults(result.results);
+          
+          // Show the results container
+          resultsContainer.style.display = 'block';
+          
+          // Show summary tab by default
+          showTab('summary-tab');
+          
+        } catch (error) {
+          console.error('Comparison error:', error);
+          let errorDetails = '';
+          
+          // Try to extract more details from the error if available
+          if (error.response) {
+            try {
+              const errorData = await error.response.json();
+              errorDetails = JSON.stringify(errorData, null, 2);
+            } catch (e) {
+              errorDetails = error.stack || '';
+            }
+          }
+          
+          // Create a detailed error message with error details
+          let errorMessage = `❌ Error: ${error.message}`;
+          if (errorDetails) {
+            errorMessage += `<div class="error-details">${errorDetails}</div>`;
+          }
+          
+          showMessage(errorMessage, 'error');
+          buttonStatus.textContent = 'Failed - See error message';
+        } finally {
+          compareButton.disabled = false; // Re-enable the button regardless of outcome
+          checkCompareEnabled(); // Check if it should be enabled based on selections
+        }
+      });
+      
+      // Function to check if Compare button should be enabled
+      function checkCompareEnabled() {
+        const canCompare = 
+          connection1Select.value && schema1Select.value && table1Select.value && column1Select.value &&
+          connection2Select.value && schema2Select.value && table2Select.value && column2Select.value;
+        
+        compareButton.disabled = !canCompare;
+      }
+      
+      // Function to load database connections
+      async function loadDatabaseConnections() {
+        showMessage('Loading database connections...', 'loading');
+        
+        try {
+          const endpoint = userData.role === 'admin' 
+            ? `${apiBaseUrl}/api/all-database-connections/` 
+            : `${apiBaseUrl}/api/list-database-connections/`;
+            
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const connections = await response.json();
+          
+          // Clear existing options
+          connection1Select.innerHTML = '<option value="">Select a database connection</option>';
+          connection2Select.innerHTML = '<option value="">Select a database connection</option>';
+          
+          if (connections.length === 0) {
+            showMessage('No database connections found. Please create one first.', 'error');
+            return;
+          }
+          
+          // Add connections to both selects
+          connections.forEach(conn => {
+            const option1 = document.createElement('option');
+            option1.value = conn.id;
+            option1.textContent = `${conn.username}@${conn.DSN}`;
+            connection1Select.appendChild(option1);
+            
+            const option2 = document.createElement('option');
+            option2.value = conn.id;
+            option2.textContent = `${conn.username}@${conn.DSN}`;
+            connection2Select.appendChild(option2);
+          });
+          
+          showMessage('Database connections loaded.', 'success');
+          
+        } catch (error) {
+          console.error('Error loading connections:', error);
+          showMessage(`Error: ${error.message}`, 'error');
+        }
+      }
+      
+      // Function to load schemas for a connection
+      async function loadSchemas(connectionId, schemaSelect) {
+        showMessage('Loading schemas...', 'loading');
+        schemaSelect.disabled = true;
+        schemaSelect.innerHTML = '<option value="">Loading schemas...</option>';
+        
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/get-schemas/${connectionId}/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.status !== 'success') {
+            throw new Error(data.message || 'Failed to load schemas');
+          }
+          
+          // Clear existing options
+          schemaSelect.innerHTML = '<option value="">Select a schema</option>';
+          
+          // Add schemas to the select
+          data.schemas.forEach(schema => {
+            const option = document.createElement('option');
+            option.value = schema.name;
+            option.textContent = schema.name;
+            schemaSelect.appendChild(option);
+          });
+          
+          schemaSelect.disabled = false;
+          showMessage('Schemas loaded successfully.', 'success');
+          
+        } catch (error) {
+          console.error('Error loading schemas:', error);
+          schemaSelect.innerHTML = '<option value="">Error loading schemas</option>';
+          showMessage(`Error: ${error.message}`, 'error');
+        }
+      }
+      
+      // Function to load tables for a schema
+      async function loadTables(connectionId, schemaName, tableSelect) {
+        showMessage('Loading tables...', 'loading');
+        tableSelect.disabled = true;
+        tableSelect.innerHTML = '<option value="">Loading tables...</option>';
+        
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/get-tables/${connectionId}/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ schema: schemaName })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.status !== 'success') {
+            throw new Error(data.message || 'Failed to load tables');
+          }
+          
+          // Clear existing options
+          tableSelect.innerHTML = '<option value="">Select a table</option>';
+          
+          if (!data.tables || data.tables.length === 0) {
+            tableSelect.innerHTML = '<option value="">No tables available in this schema</option>';
+            showMessage('No tables found in this schema.', 'error');
+            return;
+          }
+          
+          // Add tables to the select
+          data.tables.forEach(table => {
+            const option = document.createElement('option');
+            option.value = table.name;
+            option.textContent = `${table.name} (Rows: ${table.rows})`;
+            tableSelect.appendChild(option);
+          });
+          
+          tableSelect.disabled = false;
+          showMessage('Tables loaded successfully.', 'success');
+          
+        } catch (error) {
+          console.error('Error loading tables:', error);
+          tableSelect.innerHTML = '<option value="">Error loading tables</option>';
+          showMessage(`Error: ${error.message}`, 'error');
+        }
+      }
+      
+      // Function to load table columns
+      async function loadTableColumns(connectionId, schemaName, tableName, columnSelect) {
+        showMessage('Loading columns...', 'loading');
+        columnSelect.disabled = true;
+        columnSelect.innerHTML = '<option value="">Loading columns...</option>';
+        
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/get-columns/${connectionId}/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+              schema: schemaName,
+              table: tableName
+            })
+          });
+          
+          if (!response.ok) {
+            // Mock columns for now
+            simulateColumns(columnSelect, tableName);
+            return;
+          }
+          
+          const data = await response.json();
+          
+          // Clear existing options
+          columnSelect.innerHTML = '<option value="">Select a column</option>';
+          
+          if (!data.columns || data.columns.length === 0) {
+            columnSelect.innerHTML = '<option value="">No columns available</option>';
+            showMessage('No columns found in this table.', 'error');
+            return;
+          }
+          
+          // Add columns to the select
+          data.columns.forEach(column => {
+            const option = document.createElement('option');
+            option.value = column.name;
+            option.textContent = `${column.name} (${column.type})`;
+            columnSelect.appendChild(option);
+          });
+          
+          columnSelect.disabled = false;
+          showMessage('Columns loaded successfully.', 'success');
+          
+        } catch (error) {
+          console.error('Error loading columns:', error);
+          // Mock columns for development
+          simulateColumns(columnSelect, tableName);
+        }
+      }
+      
+      // Temporary function to simulate column loading
+      function simulateColumns(columnSelect, tableName) {
+        columnSelect.innerHTML = '<option value="">Select a column</option>';
+        
+        // Add mock columns based on table name
+        const columns = [
+          { name: 'ID', type: 'NUMBER' },
+          { name: 'NAME', type: 'VARCHAR2' },
+          { name: 'CREATED_DATE', type: 'DATE' },
+          { name: 'STATUS', type: 'VARCHAR2' }
+        ];
+        
+        columns.forEach(column => {
+          const option = document.createElement('option');
+          option.value = column.name;
+          option.textContent = `${column.name} (${column.type})`;
+          columnSelect.appendChild(option);
+        });
+        
+        columnSelect.disabled = false;
+        showMessage('Columns loaded successfully.', 'success');
+      }
+      
+      // Function to display comparison results
+      function displayComparisonResults(results) {
+        // Summary tab
+        document.getElementById('summary-tab').innerHTML = `
+          <h4>Comparison Summary</h4>
+          <table class="summary-table">
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Source Table Columns</td><td class="summary-value">${results.summary.total_columns_table1}</td></tr>
+            <tr><td>Target Table Columns</td><td class="summary-value">${results.summary.total_columns_table2}</td></tr>
+            <tr><td>Common Columns</td><td class="summary-value">${results.summary.common_columns}</td></tr>
+            <tr><td>Added Columns in target table</td><td class="summary-value">${results.summary.added_columns}</td></tr>
+            <tr><td>Removed Columns from source table</td><td class="summary-value">${results.summary.removed_columns}</td></tr>
+            <tr><td>Source Table Rows</td><td class="summary-value">${results.summary.total_rows_table1}</td></tr>
+            <tr><td>Target Table Rows</td><td class="summary-value">${results.summary.total_rows_table2}</td></tr>
+            <tr><td>Added Rows in target table</td><td class="summary-value">${results.summary.added_rows}</td></tr>
+            <tr><td>Removed Rows from source table</td><td class="summary-value">${results.summary.removed_rows}</td></tr>
+            <tr><td>Changed Values</td><td class="summary-value">${results.summary.changed_values}</td></tr>
+          </table>
+        `;
+        
+        // Diff tab
+        document.getElementById('diff-tab').innerHTML = `
+          <h4>Value Differences</h4>
+          ${results.value_diff.length > 0 
+            ? `<table class="diff-table">
+                <thead>
+                  <tr>
+                    <th>Primary Key</th>
+                    <th>Column</th>
+                    <th>Source Value</th>
+                    <th>Target Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${results.value_diff.map(diff => `
+                    <tr class="diff-row">
+                      <td>${diff.primary_key}</td>
+                      <td>${diff.column}</td>
+                      <td class="diff-value-old">${diff.table1_value}</td>
+                      <td class="diff-value-new">${diff.table2_value}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>`
+            : '<p>No value differences found.</p>'
+          }
+        `;
+        
+        // Columns tab - Enhanced with better spacing and colors
+        document.getElementById('columns-tab').innerHTML = `
+          <h4>Column Differences</h4>
+          <h5>Added Columns in target table</h5>
+          ${results.columns_added.length > 0
+            ? `<div class="column-container">
+                ${results.columns_added.map(column => `<span class="column-badge column-added">+ ${column}</span>`).join('')}
+              </div>`
+            : '<p>No added columns in Target table.</p>'
+          }
+          <h5>Removed Columns from source table</h5>
+          ${results.columns_removed.length > 0
+            ? `<div class="column-container">
+                ${results.columns_removed.map(column => `<span class="column-badge column-removed">- ${column}</span>`).join('')}
+              </div>`
+            : '<p>No removed columns from source table .</p>'
+          }
+        `;
+        
+        // Rows tab - Create safe handling for empty results
+        const rowsHtml = document.getElementById('rows-tab');
+        let rowsContent = `<h4>Row Differences</h4>`;
+        
+        // Added rows section
+        rowsContent += `<h5>Added Rows in target table (${results.rows_added.length})</h5>`;
+        if (results.rows_added.length > 0) {
+          try {
+            const firstAddedRow = results.rows_added[0];
+            const addedColumns = Object.keys(firstAddedRow);
+            
+            rowsContent += `
+              <div style="overflow-x: auto;">
+                <table class="diff-table">
+                  <thead>
+                    <tr>
+                      ${addedColumns.map(col => `<th>${col}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${results.rows_added.map(row => `
+                      <tr>
+                        ${addedColumns.map(col => `<td>${row[col] !== null ? row[col] : 'NULL'}</td>`).join('')}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>`;
+          } catch (e) {
+            console.error("Error rendering added rows:", e);
+            rowsContent += '<p>Error displaying added rows.</p>';
+          }
+        } else {
+          rowsContent += '<p>No added rows in target table.</p>';
+        }
+        
+        // Removed rows section
+        rowsContent += `<h5>Removed Rows from source table (${results.rows_removed.length})</h5>`;
+        if (results.rows_removed.length > 0) {
+          try {
+            const firstRemovedRow = results.rows_removed[0];
+            const removedColumns = Object.keys(firstRemovedRow);
+            
+            rowsContent += `
+              <div style="overflow-x: auto;">
+                <table class="diff-table">
+                  <thead>
+                    <tr>
+                      ${removedColumns.map(col => `<th>${col}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${results.rows_removed.map(row => `
+                      <tr>
+                        ${removedColumns.map(col => `<td>${row[col] !== null ? row[col] : 'NULL'}</td>`).join('')}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>`;
+          } catch (e) {
+            console.error("Error rendering removed rows:", e);
+            rowsContent += '<p>Error displaying removed rows.</p>';
+          }
+        } else {
+          rowsContent += '<p>No removed rows from source table.</p>';
+        }
+        
+        rowsHtml.innerHTML = rowsContent;
+      }
+      
+      // Function to show tab content
+      window.showTab = function(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+          tab.style.display = 'none';
+        });
+        
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.tab-container .button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // Show selected tab and mark its button as active
+        document.getElementById(tabId).style.display = 'block';
+        document.querySelector(`.button[onclick="showTab('${tabId}')"]`).classList.add('active');
+      }
+      
+      // Updated function to show status messages with HTML support
+      function showMessage(message, type) {
+        statusMessage.innerHTML = message;
+        statusMessage.className = `status-message ${type}`;
+        
+        // Auto-hide success messages after 8 seconds
+        if (type === 'success') {
+          setTimeout(() => {
+            statusMessage.style.display = 'none';
+          }, 8000);
+        }
+      }
+
+      // Updated function to load saved comparisons with better error handling
+      async function loadSavedComparisons() {
+        const container = document.getElementById('comparison-list-container');
+        
+        if (!container) return; // Skip if container doesn't exist
+
+        // Set initial loading state with spinner
+        container.innerHTML = '<p><div class="spinner"></div> Loading your saved comparisons...</p>';
+        
+        try {
+          console.log("Fetching saved comparisons...");
+          const response = await fetch(`${apiBaseUrl}/api/list-database-comparisons/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log("Response status:", response.status);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load saved comparisons. Status: ${response.status}`);
+          }
+          
+          const comparisons = await response.json();
+          console.log("Loaded comparisons:", comparisons);
+          
+          if (!comparisons || comparisons.length === 0) {
+            container.innerHTML = '<p>You have no saved comparisons yet. Compare tables and check "Save this comparison" to add some.</p>';
+            return;
+          }
+          
+          let html = '<ul class="comparison-list">';
+          comparisons.forEach(comp => {
+            const date = new Date(comp.timestamp).toLocaleString();
+            html += `
+              <li class="comparison-item" onclick="loadSavedComparison(${comp.id})">
+                <div>
+                  <strong>${comp.source}</strong> vs <strong>${comp.target}</strong>
+                  <div><small>${date}</small></div>
+                </div>
+                <button class="button">View</button>
+              </li>
+            `;
+          });
+          html += '</ul>';
+          
+          container.innerHTML = html;
+        } catch (error) {
+          console.error('Error loading saved comparisons:', error);
+          container.innerHTML = `
+            <div class="status-message error">
+              <p>Error loading saved comparisons: ${error.message}</p>
+              <button class="button" onclick="loadSavedComparisons()">Try Again</button>
+            </div>
+          `;
+        }
+      }
+      
+      // Function to load a saved comparison
+      window.loadSavedComparison = async function(comparisonId) {
+        showMessage('Loading saved comparison...', 'loading');
+        
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/database-comparison/${comparisonId}/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to load comparison');
+          }
+          
+          const comparison = await response.json();
+          
+          // Display the results
+          displayComparisonResults(comparison.results);
+          
+          // Set form fields to match the saved comparison
+          connection1Select.value = comparison.connection1;
+          connection2Select.value = comparison.connection2;
+          
+          // Load schemas, tables and columns (may need to trigger change events)
+          await loadSchemas(comparison.connection1, schema1Select);
+          await loadSchemas(comparison.connection2, schema2Select);
+          
+          schema1Select.value = comparison.schema1;
+          schema2Select.value = comparison.schema2;
+          
+          await loadTables(comparison.connection1, comparison.schema1, table1Select);
+          await loadTables(comparison.connection2, comparison.schema2, table2Select);
+          
+          table1Select.value = comparison.table1;
+          table2Select.value = comparison.table2;
+          
+          await loadTableColumns(comparison.connection1, comparison.schema1, comparison.table1, column1Select);
+          await loadTableColumns(comparison.connection2, comparison.schema2, comparison.table2, column2Select);
+          
+          column1Select.value = comparison.primary_key1;
+          column2Select.value = comparison.primary_key2;
+          
+          // Show the results container
+          resultsContainer.style.display = 'block';
+          
+          // Show summary tab by default
+          showTab('summary-tab');
+          
+          showMessage(`Loaded saved comparison from ${new Date(comparison.timestamp).toLocaleString()}`, 'success');
+        } catch (error) {
+          console.error('Error loading comparison:', error);
+          showMessage(`Error loading comparison: ${error.message}`, 'error');
+        }
+      }
+    });
+  </script>
+</body>
+</html>

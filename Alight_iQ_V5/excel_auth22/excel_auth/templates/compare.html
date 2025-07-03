@@ -1,0 +1,891 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compare Files | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .compare-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .file-selector {
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s;
+    }
+    .file-selector:hover {
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    .file-selector label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 500;
+      color: #444;
+    }
+    .file-selector input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-top: 5px;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-top: 8px;
+    }
+    .button, button {
+      padding: 0.6rem 1.2rem;
+      background-color: #4a6ed0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .button:hover, button:hover {
+      background-color: #3a5bb9;
+    }
+    .results-container {
+      margin-top: 20px;
+    }
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .status-message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    .loading {
+      display: block;
+      color: #555;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .tab-content {
+      display: none;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 15px 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .summary-table tr:nth-child(even) {
+      background-color: #f5f7fa;
+    }
+
+    .summary-table td, .summary-table th {
+      padding: 14px 18px;
+      text-align: left;
+      border: none;
+      border-bottom: 1px solid #eee;
+    }
+
+    .summary-table th {
+      background-color: #4a6ed0;
+      color: white;
+      font-weight: 500;
+      font-size: 1rem;
+    }
+
+    .summary-value {
+      font-weight: bold;
+      color: #333;
+      font-size: 1rem;
+    }
+    .diff-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 15px 0;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .diff-table th, .diff-table td {
+      padding: 12px 15px;
+      border: none;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .diff-table th {
+      background-color: #4a6ed0;
+      color: white;
+      text-align: left;
+      font-weight: 500;
+    }
+    
+    .diff-value-old {
+      background-color: #ffecec;
+      color: #b30000;
+      padding: 2px 5px;
+      border-radius: 3px;
+      text-decoration: none;
+    }
+    
+    .diff-value-new {
+      background-color: #eaffea;
+      color: #006700;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    .diff-row {
+      background-color: #f8f8f8;
+      transition: background-color 0.2s;
+    }
+    
+    .diff-row:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .column-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      margin: 3px;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .column-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .column-added {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .column-removed {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .column-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .rows-container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .row-item {
+      background-color: white;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .row-item h5 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      color: #4a6ed0;
+    }
+    .tab-container {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    
+    .tab-container .button {
+      background-color: #f1f1f1;
+      color: #333;
+      border-radius: 4px 4px 0 0;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      padding: 10px 15px;
+    }
+    
+    .tab-container .button:hover {
+      background-color: #e1e1e1;
+    }
+    
+    .tab-container .button.active {
+      background-color: #4a6ed0;
+      color: white;
+    }
+    @media (max-width: 768px) {
+      .compare-form {
+        grid-template-columns: 1fr;
+      }
+      
+      .tab-container .button {
+        flex: 1;
+        text-align: center;
+        padding: 8px 5px;
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+
+  <div class="container">
+    <!-- <div class="nav-buttons">
+      <a href="javascript:void(0)" onclick="navigateTo('/dashboard/')" class="button">Back to Dashboard</a>
+      <a href="javascript:void(0)" onclick="navigateTo('/template/file_manager/')" class="button">File Manager</a>
+    </div> -->
+
+    <div class="card">
+      <h2>Compare Excel Files</h2>
+      
+      <div id="status-message" class="status-message"></div>
+      
+      <div class="compare-form">
+        <div class="file-selector">
+          <h3>Source File</h3>
+          <select id="file1-select"></select>
+          <h3>Sheet 1</h3>
+          <select id="sheet1-select" disabled>
+            <option value="">Select a file first</option>
+          </select>
+          <label for="rangeInput1">Range1:</label>
+          <input type="text" id="rangeInput1" name="range_file1" placeholder="A7:F99" value="A7:F99" />
+          <label>Primary Key:</label>
+          <select id="columnSelect1"></select>
+        </div>
+        <div class="file-selector">
+          <h3>Target File</h3>
+          <select id="file2-select"></select>
+          <h3>Sheet 2</h3>
+          <select id="sheet2-select" disabled>
+            <option value="">Select a file first</option>
+          </select>
+          <label for="rangeInput2">Range2:</label>
+          <input type="text" id="rangeInput2" name="range_file2" placeholder="A7:F99" value="A7:F99" />
+          <label>Primary Key:</label>
+          <select id="columnSelect2"></select>
+        </div>
+      </div>
+      
+      <button id="compare-button" class="button" disabled>Compare Files</button>
+      
+      <div id="results-container" class="results-container" style="display: none;">
+        <h3>Comparison Results</h3>
+        <div class="tab-container" style="margin-bottom: 1rem;">
+          <button class="button" onclick="showTab('summary-tab')">Summary</button>
+          <button class="button" onclick="showTab('value-diff-tab')">Value Difference</button>
+          <button class="button" onclick="showTab('columns-tab')">Columns</button>
+          <button class="button" onclick="showTab('rows-tab')">Rows</button>
+        </div>
+        <div id="summary-tab" class="tab-content"></div>
+        <div id="value-diff-tab" class="tab-content" style="display: none;"></div>
+        <div id="columns-tab" class="tab-content" style="display: none;"></div>
+        <div id="rows-tab" class="tab-content" style="display: none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    
+    // Add helper function to sanitize JSON strings before parsing
+    function safeParseJSON(jsonString) {
+      try {
+        // Replace NaN with null (which is valid JSON)
+        jsonString = jsonString.replace(/:\s*NaN/g, ': null');
+        
+        // Replace unquoted dash values
+        jsonString = jsonString.replace(/:\s*"-"/g, ': null');
+        jsonString = jsonString.replace(/:\s*-(?!\d)/g, ': null');
+        
+        return JSON.parse(jsonString);
+      } catch (error) {
+        console.error('JSON parsing error:', error);
+        return { error: `Failed to parse JSON: ${error.message}` };
+      }
+    }
+    
+    function navigateTo(path) {
+      window.location.href = `${apiBaseUrl}${path}`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      if (!token) {
+        window.location.href = `${apiBaseUrl}/`;
+        return;
+      }
+      
+      // Display username
+      document.getElementById('username').textContent = `Welcome, ${userData.username || 'User'}`;
+      
+      // Logout functionality
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        window.location.href = `${apiBaseUrl}/`;
+      });
+      
+      // Store references to DOM elements globally within this scope
+      const file1Select = document.getElementById('file1-select');
+      const file2Select = document.getElementById('file2-select');
+      const sheet1Select = document.getElementById('sheet1-select');
+      const sheet2Select = document.getElementById('sheet2-select');
+      const compareButton = document.getElementById('compare-button');
+      const statusMessage = document.getElementById('status-message');
+      const resultsContainer = document.getElementById('results-container');
+      const comparisonResults = document.getElementById('comparison-results');
+      
+      // Debug logging
+      console.log("DOM Elements initialized:", {
+        file1Select, file2Select, sheet1Select, sheet2Select, compareButton
+      });
+      
+      // Load user files for selection
+      async function loadFiles() {
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/my-files/`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const files = await response.json();
+            populateFileSelectors(files);
+          } else {
+            console.error('Error fetching files:', await response.text());
+            statusMessage.textContent = 'Error loading files. Please try again.';
+            statusMessage.className = 'status-message error';
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          statusMessage.textContent = `Error: ${error.message}`;
+          statusMessage.className = 'status-message error';
+        }
+      }
+      
+      function populateFileSelectors(files) {
+        // Clear existing options except the first one
+        file1Select.innerHTML = '<option value="">Select a file</option>';
+        file2Select.innerHTML = '<option value="">Select a file</option>';
+        
+        if (files.length === 0) {
+          statusMessage.textContent = 'No files found. Please upload files in the File Manager.';
+          statusMessage.className = 'status-message error';
+          return;
+        }
+        
+        files.forEach(file => {
+          const rawName = file.file.split('/').pop();
+          const fileName = decodeURIComponent(rawName); 
+          
+          const option1 = document.createElement('option');
+          option1.value = file.id;
+          option1.textContent = fileName;
+          file1Select.appendChild(option1);
+          
+          const option2 = document.createElement('option');
+          option2.value = file.id;
+          option2.textContent = fileName;
+          file2Select.appendChild(option2);
+        });
+      }
+      
+      // Compare button click handler
+        compareButton.addEventListener('click', async function() {
+        const file1Id = file1Select.value;
+        const file2Id = file2Select.value;
+        
+        if (!file1Id || !file2Id) {
+          statusMessage.textContent = 'Please select two files to compare';
+          statusMessage.className = 'status-message error';
+          return;
+        }
+        
+        if (file1Id === file2Id) {
+          statusMessage.textContent = 'Please select two different files';
+          statusMessage.className = 'status-message error';
+          return;
+        }
+        
+        try {
+          statusMessage.textContent = 'Comparing files...';
+          statusMessage.className = 'status-message loading';
+          resultsContainer.style.display = 'none';
+          
+          // Log the sheet selection to help with debugging
+          console.log("Sending comparison with sheets:", {
+            file1: file1Select.value,
+            file2: file2Select.value, 
+            sheet1: sheet1Select.value,
+            sheet2: sheet2Select.value
+          });
+          
+          const payload = {
+            sheet1: sheet1Select.value,
+            sheet2: sheet2Select.value,
+            range1: document.getElementById('rangeInput1').value,
+            range2: document.getElementById('rangeInput2').value,
+            column1: document.getElementById('columnSelect1').value,
+            column2: document.getElementById('columnSelect2').value
+          };
+          
+          console.log("Sending payload:", payload);
+          
+          const response = await fetch(`${apiBaseUrl}/api/add-comparison/${file1Select.value}/${file2Select.value}/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            statusMessage.textContent = 'Comparison completed successfully!';
+            statusMessage.className = 'status-message success';
+            // Use safeParseJSON instead of JSON.parse
+            const parsed = parseComparisonDataTabs(safeParseJSON(result.data.results));
+            document.getElementById('summary-tab').innerHTML = parsed.summaryHtml;
+            document.getElementById('value-diff-tab').innerHTML = parsed.valueDiffHtml;
+            document.getElementById('columns-tab').innerHTML = parsed.columnsHtml;
+            document.getElementById('rows-tab').innerHTML = parsed.rowsHtml;
+            showTab('summary-tab'); // Show summary tab by default
+            resultsContainer.style.display = 'block';
+          } else {
+            statusMessage.textContent = result.error || 'Error comparing files.';
+            statusMessage.className = 'status-message error';
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          statusMessage.textContent = `Error: ${error.message}`;
+          statusMessage.className = 'status-message error';
+        }
+      });
+      
+      // Load files on page load
+      loadFiles();
+
+      const range1 = document.getElementById('rangeInput1');
+      const range2 = document.getElementById('rangeInput2');
+
+      range1.addEventListener('change', function() {
+        const file1Id = file1Select.value;
+        if (file1Id) {
+          loadFileHeader(file1Id, this.value, 'columnSelect1');
+        }
+      });
+
+      range2.addEventListener('change', function() {
+        const file2Id = file2Select.value;
+        if (file2Id) {
+          loadFileHeader(file2Id, this.value, 'columnSelect2');
+        }
+      });
+    });
+
+    async function loadSheetNames(fileId) {
+      const token = localStorage.getItem('authToken');
+      console.log("Fetching sheets for file ID:", fileId);
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/files/${fileId}/sheets/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("API response:", data);
+        return data.sheet_names || [];
+      } catch (error) {
+        console.error("Error in loadSheetNames:", error);
+        return [];
+      }
+    }
+
+    function checkCompareEnabled() {
+      // Get fresh references to DOM elements each time
+      const file1Select = document.getElementById('file1-select');
+      const file2Select = document.getElementById('file2-select');
+      const sheet1Select = document.getElementById('sheet1-select');
+      const sheet2Select = document.getElementById('sheet2-select');
+      const compareButton = document.getElementById('compare-button');
+      
+      // Check if all required selections are made
+      const canCompare = file1Select.value && 
+                         file2Select.value && 
+                         sheet1Select.value && 
+                         sheet2Select.value;
+      
+      // Set disabled property based on condition
+      compareButton.disabled = !canCompare;
+      
+      console.log("Compare button state updated:", {
+        file1: file1Select.value,
+        file2: file2Select.value,
+        sheet1: sheet1Select.value,
+        sheet2: sheet2Select.value,
+        buttonEnabled: !compareButton.disabled
+      });
+    }
+
+    document.getElementById('file1-select').addEventListener('change', async function() {
+      console.log("File 1 selected:", this.value);
+      const file1Id = this.value;
+      const sheet1Select = document.getElementById('sheet1-select');
+      sheet1Select.innerHTML = '<option value="">Loading...</option>';
+      sheet1Select.disabled = true;
+      checkCompareEnabled();
+      if (file1Id) {
+        const sheets = await loadSheetNames(file1Id);
+        console.log("Sheets for file 1:", sheets);
+        
+        if (sheets.length) {
+          sheet1Select.innerHTML = '<option value="">Select a sheet</option>' +
+            sheets.map(s => `<option value="${s}">${s}</option>`).join('');
+          sheet1Select.disabled = false;
+        } else {
+          sheet1Select.innerHTML = '<option value="">No sheets found</option>';
+        }
+      } else {
+        sheet1Select.innerHTML = '<option value="">Select a file first</option>';
+      }
+      checkCompareEnabled();
+    });
+
+    document.getElementById('file2-select').addEventListener('change', async function() {
+      console.log("File 2 selected:", this.value);
+      const file2Id = this.value;
+      const sheet2Select = document.getElementById('sheet2-select');
+      sheet2Select.innerHTML = '<option value="">Loading...</option>';
+      sheet2Select.disabled = true;
+      checkCompareEnabled();
+      if (file2Id) {
+        const sheets = await loadSheetNames(file2Id);
+        console.log("Sheets for file 2:", sheets);
+        
+        if (sheets.length) {
+          sheet2Select.innerHTML = '<option value="">Select a sheet</option>' +
+            sheets.map(s => `<option value="${s}">${s}</option>`).join('');
+          sheet2Select.disabled = false;
+        } else {
+          sheet2Select.innerHTML = '<option value="">No sheets found</option>';
+        }
+      } else {
+        sheet2Select.innerHTML = '<option value="">Select a file first</option>';
+      }
+      checkCompareEnabled();
+    });
+
+    document.getElementById('sheet1-select').addEventListener('change', function() {
+      console.log("Sheet 1 selected:", this.value);
+      checkCompareEnabled();
+    });
+
+    document.getElementById('sheet2-select').addEventListener('change', function() {
+      console.log("Sheet 2 selected:", this.value);
+      checkCompareEnabled();
+    });
+
+    function showTab(tabId) {
+      // Get all tab contents and hide them
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => tab.style.display = 'none');
+      
+      // Get all tab buttons and remove active class
+      const buttons = document.querySelectorAll('.tab-container .button');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      
+      // Show the selected tab content and mark button as active
+      document.getElementById(tabId).style.display = 'block';
+      document.querySelector(`.button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    }
+
+    function parseComparisonDataTabs(results) {
+      const columnsHtml = `
+        <h4>Columns Added in target flle</h4>
+        ${results.columns_added?.length
+          ? `<div class="column-container">
+              ${results.columns_added.map(c => `<span class="column-badge column-added">${c}</span>`).join('')}
+             </div>`
+          : '<p>No columns added.</p>'}
+        <h4>Columns Removed in target file</h4>
+        ${results.columns_removed?.length
+          ? `<div class="column-container">
+              ${results.columns_removed.map(c => `<span class="column-badge column-removed">${c}</span>`).join('')}
+             </div>`
+          : '<p>No columns removed.</p>'}
+      `;
+
+      // Format rows better with tables instead of raw JSON
+      const formatRow = (row) => {
+        let html = '<table class="diff-table">';
+        html += '<tr>';
+        for (const key in row) {
+          if (key !== "_OriginalRow") {
+            html += `<th>${key}</th>`;
+          }
+        }
+        html += '</tr><tr class="diff-row">';
+        for (const key in row) {
+          if (key !== "_OriginalRow") {
+            html += `<td>${row[key]}</td>`;
+          }
+        }
+        html += '</tr></table>';
+        return html;
+      };
+
+      const rowsHtml = `
+        <h4>Rows Added (${results.rows_added?.length || 0})</h4>
+        ${results.rows_added?.length
+          ? `<div class="rows-container">
+              ${results.rows_added.map((r, i) => 
+                `<div class="row-item">
+                  <h5>Added Row in traget file ${i+1} (Excel Row: ${r._OriginalRow || 'N/A'})</h5>
+                  ${formatRow(r)}
+                </div>`
+              ).join('')}
+             </div>`
+          : '<p>No rows added.</p>'}
+        <h4>Rows Removed (${results.rows_removed?.length || 0})</h4>
+        ${results.rows_removed?.length
+          ? `<div class="rows-container">
+              ${results.rows_removed.map((r, i) => 
+                `<div class="row-item">
+                  <h5>Removed Row in traget file ${i+1} (Excel Row: ${r._OriginalRow || 'N/A'})</h5>
+                  ${formatRow(r)}
+                </div>`
+              ).join('')}
+             </div>`
+          : '<p>No rows removed.</p>'}
+      `;
+
+      const valueDiffHtml = `
+        <h4>Value Differences (${results.value_diff?.length || 0})</h4>
+        ${results.value_diff?.length
+          ? `<table class="diff-table">
+              <thead>
+                <tr>
+                  <th>Row (Source file → Target File)</th>
+                  <th>Column</th>
+                  <th>Source file Value</th>
+                  <th>Target File Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${results.value_diff.map(d => `
+                  <tr class="diff-row">
+                    <td>${d.excel_row_file1} → ${d.excel_row_file2}</td>
+                    <td>${d.column}</td>
+                    <td class="diff-value-old">${d.file1_value}</td>
+                    <td class="diff-value-new">${d.file2_value}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>`
+          : '<p>No value differences.</p>'}
+      `;
+
+      // Keep summary table as is but with updated styling
+      const summaryHtml = `
+        <h4>Summary</h4>
+        ${results.summary && Object.keys(results.summary).length
+          ? `<table class="summary-table">
+              <tr><th>Metric</th><th>Value</th></tr>
+              <tr><td>Total Columns in Source file</td><td class="summary-value">${results.summary.total_columns_file1}</td></tr>
+              <tr><td>Total Columns in Target file</td><td class="summary-value">${results.summary.total_columns_file2}</td></tr>
+              <tr><td>Common Columns</td><td class="summary-value">${results.summary.common_columns}</td></tr>
+              <tr><td>Added Columns</td><td class="summary-value">${results.summary.added_columns}</td></tr>
+              <tr><td>Removed Columns</td><td class="summary-value">${results.summary.removed_columns}</td></tr>
+              <tr><td>Total Rows in Source file</td><td class="summary-value">${results.summary.total_rows_file1}</td></tr>
+              <tr><td>Total Rows in Target file</td><td class="summary-value">${results.summary.total_rows_file2}</td></tr>
+              <tr><td>Added Rows</td><td class="summary-value">${results.summary.added_rows}</td></tr>
+              <tr><td>Removed Rows</td><td class="summary-value">${results.summary.removed_rows}</td></tr>
+              <tr><td>Changed Values</td><td class="summary-value">${results.summary.changed_values}</td></tr>
+            </table>`
+          : '<p>No summary available.</p>'}
+      `;
+      return { columnsHtml, rowsHtml, valueDiffHtml, summaryHtml };
+    }
+
+    async function loadFileHeader(fileId, rangeValue, columnSelectId) {
+      const token = localStorage.getItem('authToken');
+      
+      // Ensure rangeValue is not empty
+      if (!rangeValue || rangeValue.trim() === '') {
+        rangeValue = 'A7:F99'; // Default value if empty
+      }
+      
+      console.log(`Fetching header for file ${fileId} with range ${rangeValue}`);
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/files/${fileId}/headers/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: rangeValue })
+        });
+        
+        console.log("API response status:", response.status);
+        
+        if (!response.ok) {
+          console.error("Error response:", await response.text());
+          return;
+        }
+        
+        const data = await response.json();
+        console.log("Received columns data:", data);
+        
+        // Parse the JSON string if it's still a string
+        let columns = data.columns;
+        if (typeof columns === 'string') {
+          columns = JSON.parse(columns);
+        }
+        
+        console.log("Parsed columns:", columns);
+        
+        const columnSelect = document.getElementById(columnSelectId);
+        columnSelect.innerHTML = Array.isArray(columns) ? 
+          columns.map(c => `<option value="${c}">${c}</option>`).join('') :
+          '<option value="">No columns available</option>';
+        
+      } catch (error) {
+        console.error("Error in loadFileHeader:", error);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // ...existing code...
+      
+      const range1 = document.getElementById('rangeInput1');
+      const range2 = document.getElementById('rangeInput2');
+      
+      // For range1, trigger on both change and blur events
+      range1.addEventListener('change', handleRange1Change);
+      range1.addEventListener('blur', handleRange1Change);
+      range1.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleRange1Change();
+        }
+      });
+      
+      // For range2, trigger on both change and blur events
+      range2.addEventListener('change', handleRange2Change);
+      range2.addEventListener('blur', handleRange2Change);
+      range2.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleRange2Change();
+        }
+      });
+      
+      function handleRange1Change() {
+        const file1Id = document.getElementById('file1-select').value;
+        if (file1Id) {
+          console.log("Range 1 changed to:", range1.value);
+          loadFileHeader(file1Id, range1.value, 'columnSelect1');
+        }
+      }
+      
+      function handleRange2Change() {
+        const file2Id = document.getElementById('file2-select').value;
+        if (file2Id) {
+          console.log("Range 2 changed to:", range2.value);
+          loadFileHeader(file2Id, range2.value, 'columnSelect2');
+        }
+      }
+      
+      // ...existing code...
+    });
+  </script>
+</body>
+</html>

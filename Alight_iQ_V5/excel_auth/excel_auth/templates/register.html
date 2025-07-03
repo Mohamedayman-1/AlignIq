@@ -1,0 +1,247 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .login-header {
+      background-color: #ffffff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo {
+      height: 40px;
+      margin-right: 15px;
+    }
+    
+    .site-title {
+      font-size: 1.5rem;
+      color: #333;
+      margin: 0;
+    }
+
+    .main-content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-grow: 1;
+      padding: 2rem;
+    }
+
+    .register-container {
+      padding: 2.5rem;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      max-width: 400px;
+      width: 100%;
+      transition: transform 0.3s ease;
+    }
+
+    .register-container:hover {
+      transform: translateY(-5px);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: #333;
+      font-weight: 500;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    input {
+      margin-bottom: 1.2rem;
+      padding: 0.8rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #4a6ed0;
+      box-shadow: 0 0 0 2px rgba(74, 110, 208, 0.2);
+    }
+
+    button {
+      padding: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      background: #4a6ed0;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #3a5bb9;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #registerStatus {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 4px;
+      text-align: center;
+      display: none;
+    }
+
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      display: block !important;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      display: block !important;
+    }
+
+    .loading {
+      display: block !important;
+      color: #555;
+    }
+    
+    .login-link {
+      margin-top: 1rem;
+      text-align: center;
+    }
+    
+    .login-link a {
+      color: #4a6ed0;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <!-- Replace standard header with login-specific header -->
+  <header class="login-header">
+    <div class="logo-container">
+      <img src="Lightidea Logo.png" alt="Lightidea Logo" class="logo">
+      <h1 class="site-title">AlignIQ</h1>
+    </div>
+  </header>
+  
+  <div class="main-content">
+    <div class="register-container">
+      <h1>Create Account</h1>
+      <form id="registerForm">
+        <input type="text" name="username" placeholder="Username" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <input type="password" name="confirmPassword" placeholder="Confirm Password" required />
+        <button type="submit">Register</button>
+      </form>
+      <div id="registerStatus"></div>
+      <div class="login-link">
+        Already have an account? <a href="/">Login</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const registerForm = document.getElementById('registerForm');
+      const statusElement = document.getElementById('registerStatus');
+
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        const confirmPassword = formData.get('confirmPassword');
+        
+        // Validate passwords match
+        if (password !== confirmPassword) {
+          statusElement.textContent = "Passwords don't match";
+          statusElement.className = "error";
+          return;
+        }
+        
+        // Show loading state
+        statusElement.textContent = "Creating account...";
+        statusElement.className = "loading";
+        
+        const userData = {
+          username: username,
+          password: password,
+          role: "user"  // Default role
+        };
+        
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/register/`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(userData),
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            statusElement.textContent = "Registration successful! Redirecting to login...";
+            statusElement.className = "success";
+            
+            // Redirect to login page after successful registration
+            setTimeout(() => {
+              window.location.href = `${apiBaseUrl}/`;
+            }, 2000);
+          } else {
+            statusElement.textContent = result.username ? 
+              `Registration failed: ${result.username}` : 
+              "Registration failed. Please try again.";
+            statusElement.className = "error";
+          }
+        } catch (error) {
+          console.error('Network Error:', error);
+          statusElement.textContent = `Network error: ${error.message}`;
+          statusElement.className = "error";
+        }
+      });
+    });
+  </script>
+</body>
+</html>

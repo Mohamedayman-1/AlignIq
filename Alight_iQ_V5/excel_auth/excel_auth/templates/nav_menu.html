@@ -1,0 +1,268 @@
+{% load static %}
+
+<style>
+  /* Navigation Menu Styles */
+  .nav-menu {
+    position: fixed;
+    top: 0;
+    left: -300px;
+    width: 300px;
+    height: 100vh;
+    background-color: #fff;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+  
+  .nav-menu.open {
+    left: 0;
+  }
+  
+  .nav-menu-header {
+    padding: 20px;
+    background-color: #4a6ed0;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .nav-menu-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .nav-menu-items {
+    padding: 0;
+    list-style: none;
+    margin: 0;
+  }
+  
+  .nav-menu-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s ease;
+  }
+  
+  .nav-menu-item:hover {
+    background-color: #f5f7fa;
+  }
+  
+  .nav-menu-item i {
+    margin-right: 15px;
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+    color: #4a6ed0;
+  }
+  
+  .nav-menu-item a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    flex-grow: 1;
+  }
+  
+  .nav-section-title {
+    padding: 10px 20px;
+    background-color: #f5f7fa;
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Notification styles */
+  .notification-badge {
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+
+  /* Toggle button styles */
+  .nav-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+  }
+  
+  .nav-toggle .hamburger {
+    position: relative;
+    width: 24px;
+    height: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .nav-toggle .hamburger span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: #333;
+    transition: all 0.3s ease;
+    transform-origin: left center;
+  }
+  
+  .nav-toggle.open .hamburger span:nth-child(1) {
+    transform: rotate(45deg);
+  }
+  
+  .nav-toggle.open .hamburger span:nth-child(2) {
+    opacity: 0;
+  }
+  
+  .nav-toggle.open .hamburger span:nth-child(3) {
+    transform: rotate(-45deg);
+  }
+  
+  /* Overlay for when nav is open */
+  .nav-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+  }
+  
+  .nav-overlay.open {
+    visibility: visible;
+    opacity: 1;
+  }
+</style>
+
+<!-- Toggle Button for Nav Menu (to be inserted in header) -->
+<button id="navToggle" class="nav-toggle">
+  <div class="hamburger">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</button>
+
+<!-- Navigation Menu -->
+<div id="navMenu" class="nav-menu">
+  <div class="nav-menu-header">
+    <h3>Menu</h3>
+    <button class="nav-menu-close" id="navClose">&times;</button>
+  </div>
+  
+  <ul class="nav-menu-items">
+    <li class="nav-menu-item">
+      <i>📊</i>
+      <a href="javascript:void(0)" onclick="navigateTo('/dashboard/')">Dashboard</a>
+    </li>
+    <li class="nav-menu-item">
+      <i>⚙️</i>
+      <a href="javascript:void(0)" onclick="navigateTo('/template/manager_options/')">Manager</a>
+    </li>
+    <li class="nav-menu-item">
+      <i>🔍</i>
+      <a href="javascript:void(0)" onclick="navigateTo('/template/compare_options/')">Compare</a>
+    </li>
+    <li class="nav-menu-item">
+      <i>📋</i>
+      <a href="javascript:void(0)" onclick="navigateTo('/template/history_options/')">History</a>
+    </li>
+  </ul>
+  
+  <!-- <div class="nav-section-title">Settings & Notifications</div>
+  
+  <ul class="nav-menu-items">
+    <li class="nav-menu-item">
+      <i>⚙️</i>
+      <a href="javascript:void(0)" onclick="showSettings()">Settings</a>
+    </li>
+    <li class="nav-menu-item">
+      <i>🔔</i>
+      <a href="javascript:void(0)" onclick="showNotifications()">Notifications</a>
+      <span class="notification-badge">3</span>
+    </li>
+  </ul> -->
+  
+  <!-- Admin section - only shown to admins via JavaScript -->
+  <div id="adminSection" style="display: none;">
+    <div class="nav-section-title">Admin</div>
+    <ul class="nav-menu-items">
+      <li class="nav-menu-item">
+        <i>👤</i>
+        <a href="javascript:void(0)" onclick="navigateTo('/template/admin_create_user/')">User Management</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Overlay when menu is open -->
+<div id="navOverlay" class="nav-overlay"></div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get DOM elements
+    const navToggle = document.getElementById('navToggle');
+    const navMenu = document.getElementById('navMenu');
+    const navClose = document.getElementById('navClose');
+    const navOverlay = document.getElementById('navOverlay');
+    const adminSection = document.getElementById('adminSection');
+    
+    // Get user data from localStorage
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    // Show admin section if user is admin
+    if (userData.role === 'admin') {
+      adminSection.style.display = 'block';
+    }
+    
+    // Toggle menu open/close
+    function toggleMenu() {
+      navToggle.classList.toggle('open');
+      navMenu.classList.toggle('open');
+      navOverlay.classList.toggle('open');
+      
+      // Prevent body scrolling when menu is open
+      document.body.style.overflow = navMenu.classList.contains('open') ? 'hidden' : '';
+    }
+    
+    // Add event listeners
+    navToggle.addEventListener('click', toggleMenu);
+    navClose.addEventListener('click', toggleMenu);
+    navOverlay.addEventListener('click', toggleMenu);
+    
+    // Close menu when clicking a link
+    const menuLinks = navMenu.querySelectorAll('a');
+    menuLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        toggleMenu();
+      });
+    });
+  });
+  
+  // Placeholder functions for settings and notifications
+  function showSettings() {
+    alert('Settings panel will be implemented in a future update.');
+  }
+  
+  function showNotifications() {
+    alert('You have 3 new notifications. Notification panel will be implemented in a future update.');
+  }
+</script>

@@ -1,0 +1,747 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Old Compare | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: auto;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h2, h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .button, button {
+      padding: 0.6rem 1.2rem;
+      background-color: #4a6ed0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .button:hover, button:hover {
+      background-color: #3a5bb9;
+    }
+    .status-message {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    .loading {
+      display: block;
+      color: #555;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background-color: #eef;
+    }
+    .modal {
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 60%;
+      border-radius: 8px;
+    }
+    .close {
+      float: right;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      background: #f8f9fa;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+    .summary-table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .summary-table td, .summary-table th {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .summary-table th {
+      background-color: #4a6ed0;
+      color: white;
+      font-weight: 500;
+    }
+    .summary-value {
+      font-weight: bold;
+      color: #333;
+    }
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 0.9rem;
+    }
+    .diff-table th, .diff-table td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+    .diff-table th {
+      background-color: #4a6ed0;
+      color: white;
+      text-align: left;
+    }
+    .diff-value-old {
+      background-color: #ffecec;
+      color: #b30000;
+    }
+    .diff-value-new {
+      background-color: #eaffea;
+      color: #006700;
+    }
+    .diff-row {
+      background-color: #f8f8f8;
+    }
+    .diff-row:hover {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+
+  <div class="container">
+    <div class="card">
+      <h2>My Comparisons</h2>
+      <div id="status-message" class="status-message"></div>
+      
+      <div class="search-filters" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+        <h4 style="margin-top: 0;">Search & Filters</h4>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+          <div style="flex: 1; min-width: 200px;">
+            <label for="searchInput">File Name:</label>
+            <input type="text" id="searchInput" placeholder="Search by file name..." 
+                   style="padding: 8px; width: 100%; margin-top: 5px;" />
+          </div>
+          
+          <div style="flex: 1; min-width: 200px;">
+            <label for="comparisonIdInput">Comparison ID:</label>
+            <input type="text" id="comparisonIdInput" placeholder="Search by comparison ID..." 
+                   style="padding: 8px; width: 100%; margin-top: 5px;" />
+          </div>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px;">
+          <div style="flex: 2; min-width: 300px;">
+            <label>Date Range:</label>
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+              <input type="date" id="startDateInput" style="padding: 8px; flex: 1;" />
+              <span style="align-self: center;">to</span>
+              <input type="date" id="endDateInput" style="padding: 8px; flex: 1;" />
+            </div>
+          </div>
+          
+          <div style="flex: 1; min-width: 200px;">
+            <label for="dateFilterType">Filter By:</label>
+            <select id="dateFilterType" style="padding: 8px; width: 100%; margin-top: 5px;">
+              <option value="all">All Time</option>
+              <option value="day">Day</option>
+              <option value="range">Custom Range</option>
+            </select>
+          </div>
+        </div>
+        
+        <div style="text-align: right;">
+          <button onclick="resetFilters()" class="button" style="background-color: #6c757d;">Reset</button>
+          <button onclick="fetchComparisons(1)" class="button">Apply Filters</button>
+        </div>
+      </div>
+      
+      <table id="comparisons-table" style="display: none;">
+        <thead>
+          <tr>
+            <th>Comparison ID</th>
+            <th>File 1</th>
+            <th>File 2</th>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>View Results</th>
+            <th>Download PDF</th>
+            <th>Download Excel Files</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      
+      <div class="pagination" style="margin-top: 15px; text-align: center;">
+        <button id="prevBtn" onclick="changePage(-1)" class="button">Previous</button>
+        <span id="pageInfo" style="margin: 0 15px;">Page 1</span>
+        <button id="nextBtn" onclick="changePage(1)" class="button">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="comparisonModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h3>Comparison Results</h3>
+      <div class="tab-container" style="margin-bottom: 1rem;">
+        <button class="button" onclick="showTab('summary-tab')">Summary</button>
+        <button class="button" onclick="showTab('value-diff-tab')">Value Diff</button>
+        <button class="button" onclick="showTab('columns-tab')">Columns</button>
+        <button class="button" onclick="showTab('rows-tab')">Rows</button>
+      </div>
+      <div id="summary-tab" class="tab-content"></div>
+      <div id="value-diff-tab" class="tab-content" style="display: none;"></div>
+      <div id="columns-tab" class="tab-content" style="display: none;"></div>
+      <div id="rows-tab" class="tab-content" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script>
+    const apiBaseUrl = "http://127.0.0.1:8000";
+    let comparisons = [];
+    let currentPage = 1;
+    let totalPages = 1;
+
+    function safeParseJSON(jsonString) {
+      try {
+        jsonString = jsonString.replace(/:\s*NaN/g, ': null');
+        jsonString = jsonString.replace(/:\s*"-"/g, ': null');
+        jsonString = jsonString.replace(/:\s*-(?!\d)/g, ': null');
+        return JSON.parse(jsonString);
+      } catch (error) {
+        console.error('JSON parsing error:', error);
+        return { error: `Failed to parse JSON: ${error.message}` };
+      }
+    }
+
+    function downloadExcel(comparisonId, fileNumber) {
+      console.log(`Downloading Excel file ${fileNumber} for comparison ${comparisonId}`);
+      
+      const token = localStorage.getItem('authToken');
+      const statusMessage = document.getElementById('status-message');
+      
+      statusMessage.textContent = `Downloading Excel file ${fileNumber === 1 ? '(Source)' : '(Target)'}...`;
+      statusMessage.className = 'status-message loading';
+      statusMessage.style.display = 'block';
+      
+      const downloadUrl = `${apiBaseUrl}/api/download-excel/${comparisonId}/${fileNumber}/`;
+      
+      fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to download file: ${response.statusText}`);
+        }
+        
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `comparison_${comparisonId}_file${fileNumber}.xlsx`;
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        return response.blob().then(blob => ({ blob, filename }));
+      })
+      .then(({ blob, filename }) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        statusMessage.textContent = `Excel file downloaded successfully: ${filename}`;
+        statusMessage.className = 'status-message success';
+        
+        setTimeout(() => {
+          statusMessage.style.display = 'none';
+        }, 3000);
+      })
+      .catch(error => {
+        console.error('Error downloading Excel file:', error);
+        statusMessage.textContent = `Error downloading Excel file: ${error.message}`;
+        statusMessage.className = 'status-message error';
+      });
+    }
+
+    function fetchComparisons(page) {
+      const searchValue = document.getElementById('searchInput')?.value || '';
+      const comparisonId = document.getElementById('comparisonIdInput')?.value || '';
+      const dateFilterType = document.getElementById('dateFilterType')?.value || 'all';
+      const startDate = document.getElementById('startDateInput')?.value || '';
+      const endDate = document.getElementById('endDateInput')?.value || '';
+      
+      currentPage = page || 1;
+      let queryParams = `page=${currentPage}`;
+      
+      if (searchValue) queryParams += `&search=${encodeURIComponent(searchValue)}`;
+      if (comparisonId) queryParams += `&comparison_id=${encodeURIComponent(comparisonId)}`;
+      
+      if (dateFilterType !== 'all') {
+        queryParams += `&date_filter_type=${dateFilterType}`;
+        if (dateFilterType === 'range' && startDate && endDate) {
+          queryParams += `&start_date=${startDate}&end_date=${endDate}`;
+        } else if (dateFilterType === 'day' && startDate) {
+          queryParams += `&filter_date=${startDate}`;
+        }
+      }
+      
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const endpoint = userData.role === 'admin'
+        ? `${apiBaseUrl}/api/all-comparisons/`
+        : `${apiBaseUrl}/api/list_user_comparison/`;
+      
+      const token = localStorage.getItem('authToken');
+      const statusMessage = document.getElementById('status-message');
+      
+      if (statusMessage) {
+        statusMessage.textContent = 'Loading comparisons...';
+        statusMessage.className = 'status-message loading';
+      }
+      
+      fetch(`${endpoint}?${queryParams}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token || ''}` }
+      })
+      .then(res => res.json())
+      .then(responseData => {
+        comparisons = responseData.results || responseData;
+        
+        if (!Array.isArray(comparisons)) {
+          if (statusMessage) {
+            statusMessage.textContent = 'Error: API returned unexpected data format';
+            statusMessage.className = 'status-message error';
+          }
+          return;
+        }
+        
+        const table = document.getElementById('comparisons-table');
+        const tbody = table?.querySelector('tbody');
+        
+        if (tbody) tbody.innerHTML = '';
+        
+        if (comparisons.length === 0) {
+          if (statusMessage) {
+            statusMessage.textContent = 'No comparisons found matching your filters.';
+            statusMessage.className = 'status-message error';
+          }
+          if (table) table.style.display = 'none';
+          return;
+        }
+        
+        if (statusMessage) {
+          statusMessage.textContent = 'Comparisons loaded successfully.';
+          statusMessage.className = 'status-message success';
+        }
+        if (table) table.style.display = '';
+        
+        comparisons.forEach(comp => {
+          const row = document.createElement('tr');
+          const formattedTimestamp = new Date(comp.timestamp).toLocaleString('en-US', {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+          });
+          row.innerHTML = `
+            <td>${comp.id}</td>
+            <td>${comp.file1_name.replace(/^uploads\//, '')}</td>
+            <td>${comp.file2_name.replace(/^uploads\//, '')}</td>
+            <td>${formattedTimestamp}</td>
+            <td>${comp.user}</td>
+            <td><button class="button" onclick="openModal(${comp.id})">View</button></td>
+            <td><button class="button" onclick="downloadPDF(${comp.id})">Download PDF</button></td>
+            <td>
+              <button class="button" onclick="downloadExcel(${comp.id}, 1)" style="margin-right: 5px;">Source File</button>
+              <button class="button" onclick="downloadExcel(${comp.id}, 2)">Target File</button>
+            </td>
+          `;
+          if (tbody) tbody.appendChild(row);
+        });
+        
+        const itemsPerPage = 10;
+        const totalItems = responseData.count || comparisons.length;
+        totalPages = Math.ceil(totalItems / itemsPerPage);
+        
+        const pageInfo = document.getElementById('pageInfo');
+        if (pageInfo) pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+        
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (prevBtn) prevBtn.disabled = !responseData.previous;
+        if (nextBtn) nextBtn.disabled = !responseData.next;
+        
+        window.paginationUrls = {
+          next: responseData.next,
+          previous: responseData.previous
+        };
+      })
+      .catch(err => {
+        console.error('Error fetching comparisons:', err);
+        if (statusMessage) {
+          statusMessage.textContent = `Error: ${err.message}`;
+          statusMessage.className = 'status-message error';
+        }
+      });
+    }
+
+    function openModal(id) {
+      if (!Array.isArray(comparisons)) {
+        alert("Error: Could not find comparison data");
+        return;
+      }
+      
+      const comparison = comparisons.find(c => c.id === id);
+      if (!comparison) {
+        alert("Error: Comparison not found");
+        return;
+      }
+      
+      const modal = document.getElementById('comparisonModal');
+      const summaryTab = document.getElementById('summary-tab');
+      
+      if (summaryTab) summaryTab.innerHTML = '<p>Loading comparison data...</p>';
+      if (modal) modal.style.display = 'block';
+      
+      const token = localStorage.getItem('authToken');
+      
+      fetch(`${apiBaseUrl}/api/comparison/${id}/`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error(`Failed to fetch comparison details: ${response.statusText}`);
+        return response.json();
+      })
+      .then(data => {
+        const results = safeParseJSON(data.results);
+        const parsed = parseComparisonDataTabs(results);
+        
+        const summaryTab = document.getElementById('summary-tab');
+        const valueDiffTab = document.getElementById('value-diff-tab');
+        const columnsTab = document.getElementById('columns-tab');
+        const rowsTab = document.getElementById('rows-tab');
+        
+        if (summaryTab) summaryTab.innerHTML = parsed.summaryHtml;
+        if (valueDiffTab) valueDiffTab.innerHTML = parsed.valueDiffHtml;
+        if (columnsTab) columnsTab.innerHTML = parsed.columnsHtml;
+        if (rowsTab) rowsTab.innerHTML = parsed.rowsHtml;
+        
+        showTab('summary-tab');
+      })
+      .catch(error => {
+        console.error('Error fetching comparison details:', error);
+        if (summaryTab) {
+          summaryTab.innerHTML = `<div class="error" style="display:block">Error loading comparison data: ${error.message}</div>`;
+        }
+      });
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('comparisonModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function showTab(tabId) {
+      const tabs = ['summary-tab', 'value-diff-tab', 'columns-tab', 'rows-tab'];
+      tabs.forEach(id => {
+        const tab = document.getElementById(id);
+        if (tab) tab.style.display = id === tabId ? 'block' : 'none';
+      });
+    }
+
+    function parseComparisonDataTabs(results) {
+      const summaryHtml = `
+        <h4>Summary</h4>
+        ${results.summary && Object.keys(results.summary).length
+          ? `<table class="summary-table">
+              <tr><th>Metric</th><th>Value</th></tr>
+              <tr><td>Total Columns in Source file</td><td class="summary-value">${results.summary.total_columns_file1 || 0}</td></tr>
+              <tr><td>Total Columns in Target file</td><td class="summary-value">${results.summary.total_columns_file2 || 0}</td></tr>
+              <tr><td>Common Columns</td><td class="summary-value">${results.summary.common_columns || 0}</td></tr>
+              <tr><td>Added Columns</td><td class="summary-value">${results.summary.added_columns || 0}</td></tr>
+              <tr><td>Removed Columns</td><td class="summary-value">${results.summary.removed_columns || 0}</td></tr>
+              <tr><td>Total Rows in Source file</td><td class="summary-value">${results.summary.total_rows_file1 || 0}</td></tr>
+              <tr><td>Total Rows in Target file</td><td class="summary-value">${results.summary.total_rows_file2 || 0}</td></tr>
+              <tr><td>Added Rows</td><td class="summary-value">${results.summary.added_rows || 0}</td></tr>
+              <tr><td>Removed Rows</td><td class="summary-value">${results.summary.removed_rows || 0}</td></tr>
+              <tr><td>Changed Values</td><td class="summary-value">${results.summary.changed_values || 0}</td></tr>
+            </table>`
+          : '<p>No summary available.</p>'}
+      `;
+
+      const columnsHtml = `
+        <h4>Columns Added in target file</h4>
+        ${results.columns_added?.length ? '<p>' + results.columns_added.join(', ') + '</p>' : '<p>No columns added.</p>'}
+        <h4>Columns Removed in target file</h4>
+        ${results.columns_removed?.length ? '<p>' + results.columns_removed.join(', ') + '</p>' : '<p>No columns removed.</p>'}
+      `;
+
+      const valueDiffHtml = `
+        <h4>Value Differences (${results.value_diff?.length || 0})</h4>
+        ${results.value_diff?.length
+          ? `<table class="diff-table">
+              <thead>
+                <tr><th>Row</th><th>Column</th><th>File 1 Value</th><th>File 2 Value</th></tr>
+              </thead>
+              <tbody>
+                ${results.value_diff.map(d => `
+                  <tr class="diff-row">
+                    <td>${d.excel_row_file1} → ${d.excel_row_file2}</td>
+                    <td>${d.column}</td>
+                    <td class="diff-value-old">${d.file1_value}</td>
+                    <td class="diff-value-new">${d.file2_value}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>`
+          : '<p>No value differences.</p>'}
+      `;
+
+      const rowsHtml = `
+        <h4>Rows Added (${results.rows_added?.length || 0})</h4>
+        ${results.rows_added?.length ? '<p>Rows were added to the target file.</p>' : '<p>No rows added.</p>'}
+        <h4>Rows Removed (${results.rows_removed?.length || 0})</h4>
+        ${results.rows_removed?.length ? '<p>Rows were removed from the target file.</p>' : '<p>No rows removed.</p>'}
+      `;
+
+      return { summaryHtml, columnsHtml, valueDiffHtml, rowsHtml };
+    }
+
+    function downloadPDF(id) {
+      const statusMessage = document.getElementById('status-message');
+      if (statusMessage) {
+        statusMessage.textContent = 'Preparing PDF for download...';
+        statusMessage.className = 'status-message loading';
+        statusMessage.style.display = 'block';
+      }
+      
+      const token = localStorage.getItem('authToken');
+      
+      fetch(`${apiBaseUrl}/api/comparison/${id}/`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(response => {
+        if (!response.ok) throw new Error(`Failed to fetch comparison details: ${response.statusText}`);
+        return response.json();
+      })
+      .then(comparison => {
+        const parsed = safeParseJSON(comparison.results);
+        
+        if (!window.jspdf?.jsPDF) {
+          if (statusMessage) {
+            statusMessage.textContent = "PDF generation failed: jsPDF library not loaded";
+            statusMessage.className = 'status-message error';
+          }
+          return;
+        }
+        
+        generateSimplePDF(id, comparison, parsed);
+      })
+      .catch(error => {
+        console.error('Error fetching comparison for PDF:', error);
+        if (statusMessage) {
+          statusMessage.textContent = `Error generating PDF: ${error.message}`;
+          statusMessage.className = 'status-message error';
+        }
+      });
+    }
+
+    function generateSimplePDF(id, comparison, parsed) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const file1Name = comparison.file1_name.replace(/^uploads\//, '');
+        const file2Name = comparison.file2_name.replace(/^uploads\//, '');
+        
+        doc.setProperties({
+          title: `AlignIQ #${id}`,
+          subject: `Comparison between ${file1Name} and ${file2Name}`,
+          author: 'Excel Comparison Tool'
+        });
+
+        doc.setFillColor(74, 110, 208);
+        doc.rect(0, 0, doc.internal.pageSize.width, 30, 'F');
+        
+        doc.setFontSize(20);
+        doc.setTextColor(255, 255, 255);
+        doc.text('AlignIQ', 14, 20);
+
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Comparison ID: ${id}`, 14, 40);
+        doc.text(`Date: ${new Date(comparison.timestamp).toLocaleString()}`, 14, 48);
+        doc.text(`Source File: ${file1Name}`, 14, 56);
+        doc.text(`Target File: ${file2Name}`, 14, 64);
+        
+        let yPosition = 80;
+        
+        if (parsed.summary && Object.keys(parsed.summary).length) {
+          doc.setFontSize(16);
+          doc.text('Summary', 14, yPosition);
+          yPosition += 20;
+          
+          doc.setFontSize(11);
+          Object.entries(parsed.summary).forEach(([key, value]) => {
+            const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            doc.text(`${formattedKey}: ${value}`, 14, yPosition);
+            yPosition += 7;
+          });
+        }
+        
+        const filename = `Excel_Comparison_${id}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        doc.save(filename);
+        
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+          statusMessage.textContent = `PDF saved as ${filename}`;
+          statusMessage.className = 'status-message success';
+          setTimeout(() => statusMessage.style.display = 'none', 5000);
+        }
+        
+      } catch (err) {
+        console.error("Error in generateSimplePDF:", err);
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+          statusMessage.textContent = `PDF generation failed: ${err.message}`;
+          statusMessage.className = 'status-message error';
+        }
+      }
+    }
+
+    function resetFilters() {
+      const inputs = ['searchInput', 'comparisonIdInput', 'startDateInput', 'endDateInput'];
+      inputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.value = '';
+      });
+      
+      const dateFilter = document.getElementById('dateFilterType');
+      if (dateFilter) dateFilter.value = 'all';
+      
+      fetchComparisons(1);
+    }
+    
+    function changePage(direction) {
+      if (!window.paginationUrls) return;
+      
+      const urlToUse = direction === 1 ? window.paginationUrls.next : window.paginationUrls.previous;
+      if (!urlToUse) return;
+      
+      const url = new URL(urlToUse);
+      const page = url.searchParams.get('page') || 1;
+      fetchComparisons(parseInt(page));
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      if (!token) {
+        window.location.href = `${apiBaseUrl}/`;
+        return;
+      }
+
+      const usernameSpan = document.getElementById('username');
+      const logoutBtn = document.getElementById('logoutBtn');
+      
+      if (usernameSpan) usernameSpan.textContent = `Welcome, ${userData.username || 'User'}`;
+
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          window.location.href = `${apiBaseUrl}/`;
+        });
+      }
+
+      fetchComparisons(1);
+    });
+
+    // Global functions
+    window.openModal = openModal;
+    window.downloadPDF = downloadPDF;
+    window.downloadExcel = downloadExcel;
+    window.showTab = showTab;
+    window.closeModal = closeModal;
+    window.fetchComparisons = fetchComparisons;
+    window.changePage = changePage;
+    window.resetFilters = resetFilters;
+
+    // Modal click outside to close
+    window.onclick = function(event) {
+      const modal = document.getElementById('comparisonModal');
+      if (event.target == modal) closeModal();
+    };
+  </script>
+</body>
+</html>

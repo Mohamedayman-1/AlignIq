@@ -1,0 +1,1106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Comparison History | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .button, button {
+      padding: 0.6rem 1.2rem;
+      background-color: #4a6ed0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .button:hover, button:hover {
+      background-color: #3a5bb9;
+    }
+    .filter-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f0f4f8;
+      border-radius: 8px;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 200px;
+    }
+    .filter-group label {
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .filter-group select, .filter-group input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(74, 110, 208, 0.3);
+      border-radius: 50%;
+      border-top-color: #4a6ed0;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .comparison-list {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .comparison-list th, .comparison-list td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    .comparison-list th {
+      background-color: #4a6ed0;
+      color: white;
+    }
+    .comparison-list tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    .comparison-list tr:hover {
+      background-color: #e9f0fd;
+      cursor: pointer;
+    }
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+    .view-button {
+      background-color: #4a6ed0;
+    }
+    .export-button {
+      background-color: #28a745;
+    }
+    .delete-button {
+      background-color: #dc3545;
+    }
+    .small-button {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 5px;
+    }
+    .pagination button {
+      padding: 5px 10px;
+      background-color: #f1f1f1;
+      color: #333;
+    }
+    .pagination button.active {
+      background-color: #4a6ed0;
+      color: white;
+    }
+    .admin-toggle {
+      margin-bottom: 15px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 4px solid #4a6ed0;
+    }
+    .status-message {
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    .status-message.error {
+      display: block;
+      background-color: #f8d7da;
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+    }
+    .status-message.success {
+      display: block;
+      background-color: #d4edda;
+      color: #155724;
+      border-left: 4px solid #28a745;
+    }
+    .status-message.loading {
+      display: flex;
+      align-items: center;
+      background-color: #e9f0fd;
+      color: #4a6ed0;
+      border-left: 4px solid #4a6ed0;
+    }
+    .detail-view {
+      margin-top: 20px;
+      display: none;
+    }
+    .detail-header {
+      background-color: #4a6ed0;
+      color: white;
+      padding: 15px;
+      border-radius: 4px 4px 0 0;
+    }
+    .detail-body {
+      background-color: white;
+      border: 1px solid #ddd;
+      border-top: none;
+      padding: 15px;
+      border-radius: 0 0 4px 4px;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 15px;
+    }
+    .tab {
+      padding: 8px 15px;
+      cursor: pointer;
+      margin-right: 5px;
+      background-color: #f1f1f1;
+      border-radius: 4px 4px 0 0;
+    }
+    .tab.active {
+      background-color: #4a6ed0;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .summary-table td, .summary-table th {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    .summary-table th {
+      background-color: #f1f1f1;
+      text-align: left;
+      width: 40%;
+    }
+    .diff-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .diff-table td, .diff-table th {
+      padding: 8px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    .diff-table th {
+      background-color: #f1f1f1;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+    .badge-added {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .badge-removed {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .stat-number {
+      font-weight: bold;
+      color: #4a6ed0;
+    }
+
+    /* Print-specific styles */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-content, #print-content * {
+        visibility: visible;
+      }
+      #print-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 20px;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    .print-container {
+      display: none;
+    }
+
+    .print-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .print-button {
+      background-color: #28a745;
+    }
+
+    .print-button:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+
+  <div class="container">
+    <div class="card">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Database Comparison History</h2>
+        <button onclick="goBack()" class="button" style="background-color: #6c757d;"><i>←</i> Back</button>
+      </div>
+      
+      <div id="status-message" class="status-message"></div>
+      
+      <!-- Admin view toggle - only shown for admins -->
+      <div id="admin-toggle" class="admin-toggle" style="display: none;">
+        <label>
+          <input type="checkbox" id="show-all-comparisons"> Show all users' comparisons
+        </label>
+      </div>
+      
+      <!-- Filters -->
+      <div class="filter-container">
+        <div class="filter-group">
+          <label for="search-input">Search:</label>
+          <input type="text" id="search-input" placeholder="Schema or table name...">
+        </div>
+        
+        <div class="filter-group">
+          <label for="date-filter-type">Date filter:</label>
+          <select id="date-filter-type">
+            <option value="">No date filter</option>
+            <option value="day">By day</option>
+            <option value="month">By month</option>
+            <option value="year">By year</option>
+            <option value="range">Date range</option>
+          </select>
+        </div>
+        
+        <div class="filter-group" id="single-date-container" style="display: none;">
+          <label for="filter-date">Date:</label>
+          <input type="date" id="filter-date">
+        </div>
+        
+        <div class="filter-group" id="start-date-container" style="display: none;">
+          <label for="start-date">Start date:</label>
+          <input type="date" id="start-date">
+        </div>
+        
+        <div class="filter-group" id="end-date-container" style="display: none;">
+          <label for="end-date">End date:</label>
+          <input type="date" id="end-date">
+        </div>
+        
+        <div class="filter-group" style="justify-content: flex-end;">
+          <button id="apply-filters" class="button">Apply Filters</button>
+        </div>
+      </div>
+      
+      <!-- Comparison list table -->
+      <div id="comparison-container">
+        <div class="spinner"></div> Loading database comparisons...
+      </div>
+      
+      <!-- Pagination -->
+      <div id="pagination-container" class="pagination"></div>
+      
+      <!-- Comparison detail view -->
+      <div id="detail-view" class="detail-view">
+        <div class="detail-header">
+          <h3 id="detail-title">Comparison Details</h3>
+        </div>
+        <div class="detail-body">
+          <div class="tabs">
+            <div class="tab active" data-tab="summary">Summary</div>
+            <div class="tab" data-tab="diff">Value Differences</div>
+            <div class="tab" data-tab="columns">Column Changes</div>
+            <div class="tab" data-tab="rows">Row Changes</div>
+          </div>
+          
+          <div id="summary-tab" class="tab-content active"></div>
+          <div id="diff-tab" class="tab-content"></div>
+          <div id="columns-tab" class="tab-content"></div>
+          <div id="rows-tab" class="tab-content"></div>
+          
+          <div style="margin-top: 15px;">
+            <button id="close-detail" class="button">Close</button>
+            <button id="print-comparison" class="button print-button">Print as PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="print-container" class="print-container"></div>
+
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    let currentPage = 1;
+    let totalPages = 1;
+    let userData = {};
+    
+    // Function to navigate to other pages
+    function navigateTo(path) {
+      window.location.href = `${apiBaseUrl}${path}`;
+    }
+    
+    // Function to go back to previous page
+    function goBack() {
+      window.history.back();
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check auth status
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = `${apiBaseUrl}/`;
+        return;
+      }
+      
+      // Get user data
+      userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      // Set username in header
+      const usernameElement = document.getElementById('username');
+      if (usernameElement) {
+        usernameElement.textContent = `Welcome, ${userData.username || 'User'}`;
+      }
+      
+      // Setup logout functionality
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          window.location.href = `${apiBaseUrl}/`;
+        });
+      }
+      
+      // Show admin toggle if user is admin
+      if (userData.role === 'admin') {
+        document.getElementById('admin-toggle').style.display = 'block';
+      }
+      
+      // Set up date filter logic
+      const dateFilterType = document.getElementById('date-filter-type');
+      const singleDateContainer = document.getElementById('single-date-container');
+      const startDateContainer = document.getElementById('start-date-container');
+      const endDateContainer = document.getElementById('end-date-container');
+      
+      dateFilterType.addEventListener('change', function() {
+        if (this.value === 'day' || this.value === 'month' || this.value === 'year') {
+          singleDateContainer.style.display = 'flex';
+          startDateContainer.style.display = 'none';
+          endDateContainer.style.display = 'none';
+        } else if (this.value === 'range') {
+          singleDateContainer.style.display = 'none';
+          startDateContainer.style.display = 'flex';
+          endDateContainer.style.display = 'flex';
+        } else {
+          singleDateContainer.style.display = 'none';
+          startDateContainer.style.display = 'none';
+          endDateContainer.style.display = 'none';
+        }
+      });
+      
+      // Load initial data
+      loadComparisons(1);
+      
+      // Set up tab switching
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          // Remove active class from all tabs
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          // Add active class to clicked tab
+          this.classList.add('active');
+          
+          // Hide all tab contents
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+          });
+          
+          // Show corresponding tab content
+          const tabId = this.getAttribute('data-tab');
+          document.getElementById(`${tabId}-tab`).classList.add('active');
+        });
+      });
+      
+      // Set up event listeners
+      document.getElementById('apply-filters').addEventListener('click', function() {
+        loadComparisons(1);
+      });
+      
+      document.getElementById('show-all-comparisons').addEventListener('change', function() {
+        loadComparisons(1);
+      });
+      
+      document.getElementById('close-detail').addEventListener('click', function() {
+        document.getElementById('detail-view').style.display = 'none';
+      });
+      
+      document.getElementById('print-comparison').addEventListener('click', function() {
+        printComparisonAsPdf();
+      });
+    });
+    
+    // Load comparisons with pagination and filters
+    async function loadComparisons(page) {
+      showMessage('<div class="spinner"></div> Loading comparisons...', 'loading');
+      
+      try {
+        // Build query parameters
+        let queryParams = `page=${page}`;
+        
+        // Add search filter if provided
+        const searchTerm = document.getElementById('search-input').value.trim();
+        if (searchTerm) {
+          queryParams += `&search=${encodeURIComponent(searchTerm)}`;
+        }
+        
+        // Add date filter if selected
+        const dateFilterType = document.getElementById('date-filter-type').value;
+        if (dateFilterType) {
+          queryParams += `&date_filter_type=${dateFilterType}`;
+          
+          if (dateFilterType === 'range') {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            if (startDate && endDate) {
+              queryParams += `&start_date=${startDate}&end_date=${endDate}`;
+            }
+          } else {
+            const filterDate = document.getElementById('filter-date').value;
+            if (filterDate) {
+              queryParams += `&filter_date=${filterDate}`;
+            }
+          }
+        }
+        
+        // For admin users, add the 'all' parameter if checkbox is checked
+        if (userData.role === 'admin' && document.getElementById('show-all-comparisons').checked) {
+          queryParams += '&all=true';
+        }
+        
+        // Fetch comparisons
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${apiBaseUrl}/api/database-comparisons/list/?${queryParams}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const comparisons = data.results || [];
+        currentPage = data.current_page || 1;
+        totalPages = data.total_pages || 1;
+        
+        // Render the table
+        renderComparisonTable(comparisons);
+        
+        // Render pagination
+        renderPagination(currentPage, totalPages);
+        
+        hideMessage();
+      } catch (error) {
+        console.error('Error loading comparisons:', error);
+        showMessage(`Error loading comparisons: ${error.message}`, 'error');
+        document.getElementById('comparison-container').innerHTML = 
+          '<p>Failed to load comparisons. Please try again later.</p>';
+      }
+    }
+    
+    // Render comparison table
+    function renderComparisonTable(comparisons) {
+      const container = document.getElementById('comparison-container');
+      
+      if (!comparisons || comparisons.length === 0) {
+        container.innerHTML = '<p>No database comparisons found matching your criteria.</p>';
+        return;
+      }
+      
+      let html = `
+        <table class="comparison-list">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Source Table</th>
+              <th>Target Table</th>
+              <th>Summary</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      comparisons.forEach(comp => {
+        const date = new Date(comp.timestamp).toLocaleString();
+        const summary = comp.summary || {};
+        
+        html += `
+          <tr>
+            <td>${comp.id}</td>
+            <td>${comp.source}</td>
+            <td>${comp.target}</td>
+            <td>
+              <span title="Value differences" class="stat-number">${summary.changed_values || 0}</span> differences, 
+              <span title="Added rows" class="stat-number">${summary.added_rows || 0}</span> added, 
+              <span title="Removed rows" class="stat-number">${summary.removed_rows || 0}</span> removed
+            </td>
+            <td>${date}</td>
+            <td class="actions">
+              <button class="small-button view-button" onclick="viewComparisonDetails(${comp.id})">View</button>
+              <button class="small-button delete-button" onclick="deleteComparison(${comp.id})">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+    }
+    
+    // Render pagination controls
+    function renderPagination(currentPage, totalPages) {
+      const container = document.getElementById('pagination-container');
+      
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+      
+      let html = '';
+      
+      // Previous button
+      html += `
+        <button ${currentPage === 1 ? 'disabled' : ''} onclick="loadComparisons(${currentPage - 1})">
+          Previous
+        </button>
+      `;
+      
+      // Page numbers
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + 4);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        html += `
+          <button class="${i === currentPage ? 'active' : ''}" onclick="loadComparisons(${i})">
+            ${i}
+          </button>
+        `;
+      }
+      
+      // Next button
+      html += `
+        <button ${currentPage === totalPages ? 'disabled' : ''} onclick="loadComparisons(${currentPage + 1})">
+          Next
+        </button>
+      `;
+      
+      container.innerHTML = html;
+    }
+    
+    // View comparison details
+    async function viewComparisonDetails(comparisonId) {
+      showMessage('<div class="spinner"></div> Loading comparison details...', 'loading');
+      
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${apiBaseUrl}/api/database-comparison/${comparisonId}/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const comparison = await response.json();
+        const results = comparison.results;
+        
+        // Update detail title
+        document.getElementById('detail-title').textContent = 
+          `Comparison #${comparison.id}: ${comparison.schema1}.${comparison.table1} vs ${comparison.schema2}.${comparison.table2}`;
+        
+        // Summary tab
+        const summaryHtml = `
+          <table class="summary-table">
+            <tr>
+              <th>Source Schema</th>
+              <td>${comparison.schema1}</td>
+            </tr>
+            <tr>
+              <th>Target Schema</th>
+              <td>${comparison.schema2}</td>
+            </tr>
+            <tr>
+              <th>Source Table</th>
+              <td>${comparison.table1}</td>
+            </tr>
+            <tr>
+              <th>Target Table</th>
+              <td>${comparison.table2}</td>
+            </tr>
+            <tr>
+              <th>Primary Key</th>
+              <td>${comparison.primary_key1}</td>
+            </tr>
+            <tr>
+              <th>Date & Time</th>
+              <td>${new Date(comparison.timestamp).toLocaleString()}</td>
+            </tr>
+            <tr><td colspan="2"><hr></td></tr>
+            <tr>
+              <th>Source Columns</th>
+              <td>${results.summary.total_columns_table1}</td>
+            </tr>
+            <tr>
+              <th>Target Columns</th>
+              <td>${results.summary.total_columns_table2}</td>
+            </tr>
+            <tr>
+              <th>Added Columns in target table</th>
+              <td>${results.summary.added_columns}</td>
+            </tr>
+            <tr>
+              <th>Removed Columns from source table</th>
+              <td>${results.summary.removed_columns}</td>
+            </tr>
+            <tr><td colspan="2"><hr></td></tr>
+            <tr>
+              <th>Source Rows</th>
+              <td>${results.summary.total_rows_table1}</td>
+            </tr>
+            <tr>
+              <th>Target Rows</th>
+              <td>${results.summary.total_rows_table2}</td>
+            </tr>
+            <tr>
+              <th>add rows in target table</th>
+              <td>${results.summary.added_rows}</td>
+            </tr>
+            <tr>
+              <th>removed rows from source table</th>
+              <td>${results.summary.removed_rows}</td>
+            </tr>
+            <tr>
+              <th>Changed Values</th>
+              <td>${results.summary.changed_values}</td>
+            </tr>
+          </table>
+        `;
+        document.getElementById('summary-tab').innerHTML = summaryHtml;
+        
+        // Value differences tab
+        let diffHtml = '';
+        if (results.value_diff && results.value_diff.length > 0) {
+          diffHtml = `
+            <table class="diff-table">
+              <thead>
+                <tr>
+                  <th>Primary Key</th>
+                  <th>Column</th>
+                  <th>Source Value</th>
+                  <th>Target Value</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          
+          results.value_diff.forEach(diff => {
+            diffHtml += `
+              <tr>
+                <td>${diff.primary_key}</td>
+                <td>${diff.column}</td>
+                <td>${diff.table1_value}</td>
+                <td>${diff.table2_value}</td>
+              </tr>
+            `;
+          });
+          
+          diffHtml += `</tbody></table>`;
+        } else {
+          diffHtml = '<p>No value differences found.</p>';
+        }
+        document.getElementById('diff-tab').innerHTML = diffHtml;
+        
+        // Column changes tab
+        let columnsHtml = '';
+        
+        // Added columns
+        columnsHtml += '<h4>Added Columns in target table</h4>';
+        if (results.columns_added && results.columns_added.length > 0) {
+          columnsHtml += '<div>';
+          results.columns_added.forEach(col => {
+            columnsHtml += `<span class="badge badge-added">${col}</span>`;
+          });
+          columnsHtml += '</div>';
+        } else {
+          columnsHtml += '<p>No columns were added in target table.</p>';
+        }
+        
+        // Removed columns
+        columnsHtml += '<h4>Removed Columns from source table</h4>';
+        if (results.columns_removed && results.columns_removed.length > 0) {
+          columnsHtml += '<div>';
+          results.columns_removed.forEach(col => {
+            columnsHtml += `<span class="badge badge-removed">${col}</span>`;
+          });
+          columnsHtml += '</div>';
+        } else {
+          columnsHtml += '<p>No columns were removed from source table.</p>';
+        }
+        
+        document.getElementById('columns-tab').innerHTML = columnsHtml;
+        
+        // Row changes tab
+        let rowsHtml = '';
+        
+        // Added rows
+        rowsHtml += `<h4>Added Rows in target table (${results.rows_added ? results.rows_added.length : 0})</h4>`;
+        if (results.rows_added && results.rows_added.length > 0) {
+          try {
+            const firstRow = results.rows_added[0];
+            const columns = Object.keys(firstRow);
+            
+            rowsHtml += `
+              <div style="overflow-x: auto;">
+                <table class="diff-table">
+                  <thead>
+                    <tr>
+                      ${columns.map(col => `<th>${col}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            results.rows_added.slice(0, 50).forEach(row => { // Limit to first 50 rows
+              rowsHtml += `
+                <tr>
+                  ${columns.map(col => `<td>${row[col] !== null ? row[col] : 'NULL'}</td>`).join('')}
+                </tr>
+              `;
+            });
+            
+            if (results.rows_added.length > 50) {
+              rowsHtml += `<tr><td colspan="${columns.length}">... and ${results.rows_added.length - 50} more rows</td></tr>`;
+            }
+            
+            rowsHtml += `</tbody></table></div>`;
+          } catch (e) {
+            rowsHtml += `<p>Error displaying added rows: ${e.message}</p>`;
+          }
+        } else {
+          rowsHtml += '<p>No rows were added in target table.</p>';
+        }
+        
+        // Removed rows
+        rowsHtml += `<h4>Removed Rows from source table (${results.rows_removed ? results.rows_removed.length : 0})</h4>`;
+        if (results.rows_removed && results.rows_removed.length > 0) {
+          try {
+            const firstRow = results.rows_removed[0];
+            const columns = Object.keys(firstRow);
+            
+            rowsHtml += `
+              <div style="overflow-x: auto;">
+                <table class="diff-table">
+                  <thead>
+                    <tr>
+                      ${columns.map(col => `<th>${col}</th>`).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            results.rows_removed.slice(0, 50).forEach(row => { // Limit to first 50 rows
+              rowsHtml += `
+                <tr>
+                  ${columns.map(col => `<td>${row[col] !== null ? row[col] : 'NULL'}</td>`).join('')}
+                </tr>
+              `;
+            });
+            
+            if (results.rows_removed.length > 50) {
+              rowsHtml += `<tr><td colspan="${columns.length}">... and ${results.rows_removed.length - 50} more rows</td></tr>`;
+            }
+            
+            rowsHtml += `</tbody></table></div>`;
+          } catch (e) {
+            rowsHtml += `<p>Error displaying removed rows: ${e.message}</p>`;
+          }
+        } else {
+          rowsHtml += '<p>No rows were removed from source table.</p>';
+        }
+        
+        document.getElementById('rows-tab').innerHTML = rowsHtml;
+        
+        // Show the detail view
+        document.getElementById('detail-view').style.display = 'block';
+        document.getElementById('detail-view').scrollIntoView({ behavior: 'smooth' });
+        
+        hideMessage();
+      } catch (error) {
+        console.error('Error loading comparison details:', error);
+        showMessage(`Error loading comparison details: ${error.message}`, 'error');
+      }
+    }
+    
+    // Delete a comparison
+    async function deleteComparison(comparisonId) {
+      if (!confirm('Are you sure you want to delete this comparison? This action cannot be undone.')) {
+        return;
+      }
+      
+      showMessage('<div class="spinner"></div> Deleting comparison...', 'loading');
+      
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${apiBaseUrl}/api/delete-database-comparison/${comparisonId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+        }
+        
+        showMessage('Comparison deleted successfully.', 'success');
+        
+        // Reload the current page
+        loadComparisons(currentPage);
+      } catch (error) {
+        console.error('Error deleting comparison:', error);
+        showMessage(`Error deleting comparison: ${error.message}`, 'error');
+      }
+    }
+    
+    // Show a status message
+    function showMessage(message, type) {
+      const msgElement = document.getElementById('status-message');
+      msgElement.innerHTML = message;
+      msgElement.className = `status-message ${type}`;
+      msgElement.style.display = type === 'loading' ? 'flex' : 'block';
+      
+      // Auto-hide success messages after 3 seconds
+      if (type === 'success') {
+        setTimeout(() => {
+          msgElement.style.display = 'none';
+        }, 3000);
+      }
+    }
+    
+    // Hide the status message
+    function hideMessage() {
+      document.getElementById('status-message').style.display = 'none';
+    }
+
+    // Print comparison as PDF function
+    function printComparisonAsPdf() {
+      try {
+        const comparisonTitle = document.getElementById('detail-title').textContent;
+        const summaryContent = document.getElementById('summary-tab').innerHTML;
+        const diffContent = document.getElementById('diff-tab').innerHTML;
+        const columnsContent = document.getElementById('columns-tab').innerHTML;
+        const rowsContent = document.getElementById('rows-tab').innerHTML;
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        
+        // Write the print-friendly content
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${comparisonTitle}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+              }
+              .print-header {
+                text-align: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #ddd;
+              }
+              h1 {
+                font-size: 24px;
+                margin-bottom: 5px;
+              }
+              h2 {
+                font-size: 20px;
+                margin-top: 20px;
+                margin-bottom: 10px;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 5px;
+              }
+              h3, h4 {
+                font-size: 18px;
+                margin-top: 15px;
+                margin-bottom: 10px;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+              }
+              th, td {
+                padding: 8px;
+                border: 1px solid #ddd;
+                text-align: left;
+              }
+              th {
+                background-color: #f5f5f5;
+              }
+              .badge {
+                display: inline-block;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                margin-right: 5px;
+                margin-bottom: 5px;
+              }
+              .badge-added {
+                background-color: #d4edda;
+                color: #155724;
+              }
+              .badge-removed {
+                background-color: #f8d7da;
+                color: #721c24;
+              }
+              .section {
+                margin-bottom: 25px;
+                page-break-inside: avoid;
+              }
+              @page {
+                size: A4;
+                margin: 1cm;
+              }
+            </style>
+          </head>
+          <body>
+            <div id="print-content">
+              <div class="print-header">
+                <h1>${comparisonTitle}</h1>
+                <p>Generated on ${new Date().toLocaleString()}</p>
+              </div>
+              
+              <div class="section">
+                <h2>Summary</h2>
+                ${summaryContent}
+              </div>
+              
+              <div class="section">
+                <h2>Value Differences</h2>
+                ${diffContent}
+              </div>
+              
+              <div class="section">
+                <h2>Column Changes</h2>
+                ${columnsContent}
+              </div>
+              
+              <div class="section">
+                <h2>Row Changes</h2>
+                ${rowsContent}
+              </div>
+            </div>
+          </body>
+          </html>
+        `);
+        
+        // Ensure content is fully loaded before printing
+        printWindow.document.close();
+        printWindow.onload = function() {
+          // Trigger print dialog
+          printWindow.focus();
+          printWindow.print();
+          // Close the window after printing (optional, based on user preference)
+          // printWindow.onafterprint = function() { printWindow.close(); };
+        };
+        
+      } catch (error) {
+        console.error('Error printing comparison:', error);
+        showMessage(`Error preparing print: ${error.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

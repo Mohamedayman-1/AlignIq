@@ -1,0 +1,894 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Excel Comparison Tool</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #3a5bb9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .dashboard-message {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .dashboard-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out forwards;
+      animation-delay: 0.3s;
+    }
+    
+    .action-button {
+      flex: 1;
+      background: linear-gradient(135deg, #4a6ed0, #3a5bb9);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .action-button:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      transform: skewX(-30deg);
+      transition: 0.5s;
+    }
+    
+    .action-button:hover:before {
+      left: 100%;
+    }
+    
+    .action-button:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+    }
+    
+    .action-button i {
+      font-size: 24px;
+      margin-bottom: 8px;
+      animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-10px);}
+      60% {transform: translateY(-5px);}
+    }
+    
+    .analytics-container {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease-out forwards;
+    }
+    
+    .analytics-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      opacity: 0;
+      animation: fadeIn 0.5s ease-out forwards;
+      animation-delay: calc(var(--animation-order) * 0.1s);
+    }
+    
+    .analytics-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .analytics-card h3 {
+      margin-top: 0;
+      color: #4a6ed0;
+      font-size: 1.2rem;
+    }
+    
+    .analytics-value {
+      font-size: 2rem;
+      font-weight: 600;
+      color: #333;
+      margin: 0.5rem 0;
+      display: inline-block;
+      background: linear-gradient(45deg, #4a6ed0, #6c8ff3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      opacity: 0;
+      animation: countUp 1s ease-out forwards;
+      animation-delay: calc(var(--animation-order) * 0.2s + 0.3s);
+    }
+    
+    @keyframes countUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .chart-container {
+      height: 250px;
+      margin-top: 1rem;
+      opacity: 0;
+      animation: fadeIn 0.8s ease-out forwards;
+      animation-delay: calc(var(--animation-order) * 0.2s + 0.5s);
+    }
+    
+    .recent-activity {
+      grid-column: 1 / -1;
+    }
+    
+    .activity-list {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .activity-item {
+      padding: 0.8rem 0;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      opacity: 0;
+      animation: slideInRight 0.5s ease-out forwards;
+      animation-delay: calc(var(--item-index) * 0.1s + 0.3s);
+    }
+    
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .admin-section {
+      margin-top: 2rem;
+      border-top: 1px solid #eee;
+      padding-top: 1rem;
+      display: none; /* Hidden by default, shown for admins via JS */
+    }
+    
+    .loading-indicator {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {opacity: 0.6;}
+      50% {opacity: 1;}
+      100% {opacity: 0.6;}
+    }
+    
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      border-left: 4px solid #dc3545;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      animation: shakeError 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shakeError {
+      0%, 100% {transform: translateX(0);}
+      10%, 30%, 50%, 70%, 90% {transform: translateX(-5px);}
+      20%, 40%, 60%, 80% {transform: translateX(5px);}
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.html' %}
+
+  <div class="container">
+    <div class="dashboard-message">
+      <h2>Welcome to the Dashboard</h2>
+      <p>You have successfully logged in.</p>
+      
+      <h3>Quick Actions</h3>
+
+      <div class="dashboard-actions">
+        <a href="javascript:void(0)" onclick="navigateTo('/template/manager_options/')" class="action-button">
+          <i>⚙️</i>
+          Manager
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('/template/compare_options/')" class="action-button">
+          <i>🔍</i>
+          Compare
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('/template/history_options/')" class="action-button">
+          <i>📋</i>
+          History
+        </a>
+      </div>
+
+      <div id="admin-analytics" class="admin-section">
+        <h2>Admin Analytics</h2>
+        <div class="analytics-container">
+          <!-- Admin analytics cards will be inserted here -->
+        </div>
+      </div>
+      <h2>Your Analytics</h2>
+      <div id="loading-analytics" class="loading-indicator">Loading analytics data...</div>
+      <div id="analytics-error" class="error-message" style="display: none;"></div>
+      
+      <div id="analytics-container" class="analytics-container" style="display: none;">
+        <!-- User analytics cards will be inserted here -->
+      </div>
+      
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="{% static 'confg.js' %}"></script>
+  <script>
+    const apiBaseUrl = getConfig();
+    
+    function navigateTo(path) {
+      window.location.href = `${apiBaseUrl}${path}`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check for auth token
+      const token = localStorage.getItem('authToken');
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+      
+      // Display username
+      document.getElementById('username').textContent = `Welcome, ${userData.username || 'User'}`;
+      
+      // Logout functionality
+      document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        window.location.href = `${apiBaseUrl}/`;
+      });
+
+      // Show "Admin Panel" button only if user role is 'admin'
+      if (userData.role === 'admin') {
+        const adminButton = document.createElement('a');
+        adminButton.href = "javascript:void(0)";
+        adminButton.className = "action-button";
+        adminButton.onclick = function() { navigateTo('/template/admin_create_user/'); };
+        adminButton.innerHTML = '<i>👤</i> Admin Panel';
+        document.querySelector('.dashboard-actions').appendChild(adminButton);
+        
+        // Show admin analytics section for admins
+        document.getElementById('admin-analytics').style.display = 'block';
+      }
+
+      // Fetch analytics data
+      fetchAnalytics();
+    });
+    
+    async function fetchAnalytics() {
+      const token = localStorage.getItem('authToken');
+      const analyticsContainer = document.getElementById('analytics-container');
+      const loadingIndicator = document.getElementById('loading-analytics');
+      const errorMessage = document.getElementById('analytics-error');
+      
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/dashboard/analytics/`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics data');
+        }
+        
+        const analyticsData = await response.json();
+        
+        // Hide loading indicator and show analytics
+        loadingIndicator.style.display = 'none';
+        analyticsContainer.style.display = 'grid';
+        
+        // Render user analytics
+        renderUserAnalytics(analyticsData.user_stats);
+        
+        // If admin, render admin analytics
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        if (userData.role === 'admin' && analyticsData.admin_stats) {
+          renderAdminAnalytics(analyticsData.admin_stats);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        loadingIndicator.style.display = 'none';
+        errorMessage.textContent = `Error loading analytics: ${error.message}`;
+        errorMessage.style.display = 'block';
+      }
+    }
+    
+    function renderUserAnalytics(data) {
+      const container = document.getElementById('analytics-container');
+      container.innerHTML = ''; // Clear existing content
+      
+      // Files count card
+      const filesCard = document.createElement('div');
+      filesCard.className = 'analytics-card';
+      filesCard.style.setProperty('--animation-order', '1');
+      filesCard.innerHTML = `
+        <h3>Your Files</h3>
+        <div class="analytics-value" style="--animation-order: 1">${data.total_files}</div>
+        <p>Total uploaded files</p>
+      `;
+      
+      // Comparisons count card
+      const comparisonsCard = document.createElement('div');
+      comparisonsCard.className = 'analytics-card';
+      comparisonsCard.style.setProperty('--animation-order', '2');
+      comparisonsCard.innerHTML = `
+        <h3>Your Comparisons</h3>
+        <div class="analytics-value" style="--animation-order: 2">${data.total_comparisons}</div>
+        <p>Total comparisons made</p>
+      `;
+      
+      // File types card
+      const fileTypesCard = document.createElement('div');
+      fileTypesCard.className = 'analytics-card';
+      fileTypesCard.style.setProperty('--animation-order', '3');
+      fileTypesCard.innerHTML = `
+        <h3>File Types</h3>
+        <div id="file-types-chart" class="chart-container" style="--animation-order: 3"></div>
+      `;
+      
+      // Activity chart card
+      const activityCard = document.createElement('div');
+      activityCard.className = 'analytics-card';
+      activityCard.style.setProperty('--animation-order', '4');
+      activityCard.innerHTML = `
+        <h3>Your Activity (Last 30 Days)</h3>
+        <div id="activity-chart" class="chart-container" style="--animation-order: 4"></div>
+      `;
+      
+      // Recent activity card
+      const recentActivityCard = document.createElement('div');
+      recentActivityCard.className = 'analytics-card recent-activity';
+      recentActivityCard.style.setProperty('--animation-order', '5');
+      
+      let recentActivityHtml = `
+        <h3>Recent Comparisons</h3>
+        <ul class="activity-list">
+      `;
+      
+      if (data.recent_comparisons && data.recent_comparisons.length) {
+        data.recent_comparisons.forEach((comp, index) => {
+          recentActivityHtml += `
+            <li class="activity-item" style="--item-index: ${index}">
+              <span>${comp.file1} ↔ ${comp.file2}</span>
+              <span>${new Date(comp.timestamp).toLocaleDateString()}</span>
+            </li>
+          `;
+        });
+      } else {
+        recentActivityHtml += `<li class="activity-item" style="--item-index: 0">No recent comparisons found</li>`;
+      }
+      
+      recentActivityHtml += `</ul>`;
+      recentActivityCard.innerHTML = recentActivityHtml;
+      
+      // Add all cards to container
+      container.appendChild(filesCard);
+      container.appendChild(comparisonsCard);
+      container.appendChild(fileTypesCard);
+      container.appendChild(activityCard);
+      container.appendChild(recentActivityCard);
+      
+      // Initialize charts
+      renderFileTypesChart(data.file_types);
+      renderActivityChart(data.activity_by_day);
+    }
+    
+    function renderAdminAnalytics(data) {
+      const container = document.querySelector('#admin-analytics .analytics-container');
+      container.innerHTML = ''; // Clear existing content
+      
+      // Users count card
+      const usersCard = document.createElement('div');
+      usersCard.className = 'analytics-card';
+      usersCard.style.setProperty('--animation-order', '1');
+      usersCard.innerHTML = `
+        <h3>Total Users</h3>
+        <div class="analytics-value" style="--animation-order: 1">${data.total_users}</div>
+        <p>Registered users</p>
+      `;
+      
+      // System files count card
+      const filesCard = document.createElement('div');
+      filesCard.className = 'analytics-card';
+      filesCard.style.setProperty('--animation-order', '2');
+      filesCard.innerHTML = `
+        <h3>Total Files</h3>
+        <div class="analytics-value" style="--animation-order: 2">${data.total_files}</div>
+        <p>Files in the system</p>
+      `;
+      
+      // System comparisons count card
+      const comparisonsCard = document.createElement('div');
+      comparisonsCard.className = 'analytics-card';
+      comparisonsCard.style.setProperty('--animation-order', '3');
+      comparisonsCard.innerHTML = `
+        <h3>Total Comparisons</h3>
+        <div class="analytics-value" style="--animation-order: 3">${data.total_comparisons}</div>
+        <p>Comparisons made</p>
+      `;
+      
+      // Top users card
+      const topUsersCard = document.createElement('div');
+      topUsersCard.className = 'analytics-card';
+      topUsersCard.style.setProperty('--animation-order', '4');
+      
+      let topUsersHtml = `
+        <h3>Top Users</h3>
+        <ul class="activity-list">
+      `;
+      
+      if (data.top_users && data.top_users.length) {
+        data.top_users.forEach((user, index) => {
+          topUsersHtml += `
+            <li class="activity-item" style="--item-index: ${index}">
+              <span>${user.username}</span>
+              <span>${user.comparison_count} comparisons</span>
+            </li>
+          `;
+        });
+      } else {
+        topUsersHtml += `<li class="activity-item" style="--item-index: 0">No user data available</li>`;
+      }
+      
+      topUsersHtml += `</ul>`;
+      topUsersCard.innerHTML = topUsersHtml;
+      
+      // System file types card
+      const fileTypesCard = document.createElement('div');
+      fileTypesCard.className = 'analytics-card';
+      fileTypesCard.style.setProperty('--animation-order', '5');
+      fileTypesCard.innerHTML = `
+        <h3>System File Types</h3>
+        <div id="system-file-types-chart" class="chart-container" style="--animation-order: 5"></div>
+      `;
+      
+      // System activity chart
+      const activityCard = document.createElement('div');
+      activityCard.className = 'analytics-card';
+      activityCard.style.setProperty('--animation-order', '6');
+      activityCard.innerHTML = `
+        <h3>System Activity (Last 30 Days)</h3>
+        <div id="system-activity-chart" class="chart-container" style="--animation-order: 6"></div>
+      `;
+      
+      // Add all cards to container
+      container.appendChild(usersCard);
+      container.appendChild(filesCard);
+      container.appendChild(comparisonsCard);
+      container.appendChild(topUsersCard);
+      container.appendChild(fileTypesCard);
+      container.appendChild(activityCard);
+      
+      // Initialize charts
+      renderSystemFileTypesChart(data.system_file_types);
+      renderSystemActivityChart(data.system_activity_by_day);
+    }
+    
+    function renderFileTypesChart(fileTypes) {
+      if (!fileTypes || Object.keys(fileTypes).length === 0) {
+        document.getElementById('file-types-chart').innerHTML = 'No file data available';
+        return;
+      }
+      
+      const labels = Object.keys(fileTypes);
+      const values = Object.values(fileTypes);
+      
+      const options = {
+        series: values,
+        chart: {
+          type: 'donut',
+          height: 250,
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            animateGradually: {
+              enabled: true,
+              delay: 150
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          }
+        },
+        colors: ['#4a6ed0', '#6c8ff3', '#95acf6', '#c0cbf9', '#e0e6fc'],
+        labels: labels,
+        legend: {
+          position: 'bottom',
+          horizontalAlign: 'center'
+        },
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '55%',
+              labels: {
+                show: true,
+                total: {
+                  show: true,
+                  label: 'Total Files',
+                  fontWeight: 600,
+                  formatter: function(w) {
+                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: false
+        },
+        tooltip: {
+          style: {
+            fontSize: '12px'
+          },
+          y: {
+            formatter: function(val) {
+              return val + " files";
+            }
+          }
+        }
+      };
+      
+      const chart = new ApexCharts(document.getElementById("file-types-chart"), options);
+      chart.render();
+    }
+    
+    function renderActivityChart(activityData) {
+      // If no data, show message
+      if (!activityData || Object.keys(activityData).length === 0) {
+        document.getElementById('activity-chart').innerHTML = 'No activity data available';
+        return;
+      }
+      
+      // Sort dates in chronological order
+      const sortedDates = Object.keys(activityData).sort();
+      const counts = sortedDates.map(date => activityData[date]);
+      
+      // Format dates to be more readable
+      const formattedDates = sortedDates.map(date => {
+        const d = new Date(date);
+        return `${d.getMonth()+1}/${d.getDate()}`;
+      });
+      
+      const options = {
+        series: [{
+          name: 'Comparisons',
+          data: counts
+        }],
+        chart: {
+          height: 250,
+          type: 'area',
+          toolbar: {
+            show: false
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            animateGradually: {
+              enabled: true,
+              delay: 150
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          }
+        },
+        colors: ['#4a6ed0'],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 2
+        },
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.7,
+            opacityTo: 0.3,
+            stops: [0, 90, 100]
+          }
+        },
+        xaxis: {
+          categories: formattedDates,
+          labels: {
+            style: {
+              colors: '#555',
+              fontSize: '10px'
+            }
+          }
+        },
+        yaxis: {
+          min: 0,
+          tickAmount: 4,
+          labels: {
+            style: {
+              colors: '#555',
+              fontSize: '10px'
+            }
+          }
+        },
+        markers: {
+          size: 3,
+          strokeWidth: 0,
+          hover: {
+            size: 5
+          }
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function(val) {
+              return val + " comparisons";
+            }
+          }
+        }
+      };
+      
+      const chart = new ApexCharts(document.getElementById("activity-chart"), options);
+      chart.render();
+    }
+    
+    function renderSystemFileTypesChart(fileTypes) {
+      if (!fileTypes || Object.keys(fileTypes).length === 0) {
+        document.getElementById('system-file-types-chart').innerHTML = 'No file data available';
+        return;
+      }
+      
+      const labels = Object.keys(fileTypes);
+      const values = Object.values(fileTypes);
+      
+      const options = {
+        series: values,
+        chart: {
+          type: 'pie',
+          height: 250,
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            animateGradually: {
+              enabled: true,
+              delay: 150
+            },
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          }
+        },
+        colors: ['#4a6ed0', '#6c8ff3', '#95acf6', '#c0cbf9', '#e0e6fc', '#3a5bb9', '#2a4ba8'],
+        labels: labels,
+        legend: {
+          position: 'bottom',
+          horizontalAlign: 'center'
+        },
+        plotOptions: {
+          pie: {
+            dataLabels: {
+              offset: -5
+            }
+          }
+        },
+        dataLabels: {
+          formatter: function(val, opts) {
+            return opts.w.config.series[opts.seriesIndex];
+          }
+        },
+        stroke: {
+          show: false
+        },
+        tooltip: {
+          style: {
+            fontSize: '12px'
+          },
+          y: {
+            formatter: function(val) {
+              return val + " files";
+            }
+          }
+        }
+      };
+      
+      const chart = new ApexCharts(document.getElementById("system-file-types-chart"), options);
+      chart.render();
+    }
+    
+    function renderSystemActivityChart(activityData) {
+      if (!activityData || Object.keys(activityData).length === 0) {
+        document.getElementById('system-activity-chart').innerHTML = 'No activity data available';
+        return;
+      }
+      
+      // Sort dates in chronological order
+      const sortedDates = Object.keys(activityData).sort();
+      const counts = sortedDates.map(date => activityData[date]);
+      
+      // Format dates to be more readable
+      const formattedDates = sortedDates.map(date => {
+        const d = new Date(date);
+        return `${d.getMonth()+1}/${d.getDate()}`;
+      });
+      
+      const options = {
+        series: [{
+          name: 'Comparisons',
+          data: counts
+        }],
+        chart: {
+          height: 250,
+          type: 'bar',
+          toolbar: {
+            show: false
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            dynamicAnimation: {
+              enabled: true,
+              speed: 350
+            }
+          }
+        },
+        plotOptions: {
+          bar: {
+            columnWidth: '60%',
+            borderRadius: 4,
+            dataLabels: {
+              position: 'top'
+            },
+          }
+        },
+        colors: ['#4a6ed0'],
+        dataLabels: {
+          enabled: true,
+          formatter: function(val) {
+            return val;
+          },
+          offsetY: -20,
+          style: {
+            fontSize: '11px',
+            colors: ["#304758"]
+          }
+        },
+        grid: {
+          borderColor: '#f1f1f1'
+        },
+        xaxis: {
+          categories: formattedDates,
+          labels: {
+            style: {
+              colors: '#555',
+              fontSize: '10px'
+            }
+          }
+        },
+        yaxis: {
+          min: 0,
+          tickAmount: 4,
+          labels: {
+            style: {
+              colors: '#555',
+              fontSize: '10px'
+            }
+          }
+        },
+        states: {
+          hover: {
+            filter: {
+              type: 'darken',
+              value: 0.9,
+            }
+          }
+        },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function(val) {
+              return val + " comparisons";
+            }
+          }
+        }
+      };
+      
+      const chart = new ApexCharts(document.getElementById("system-activity-chart"), options);
+      chart.render();
+    }
+  </script>
+</body>
+</html>

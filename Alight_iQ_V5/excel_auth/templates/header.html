@@ -1,0 +1,47 @@
+{% load static %}
+<style>
+  header {
+    background-color: #ffffff;
+    color: #333; /* Changed from white to dark gray for better visibility */
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .user-info {
+    display: flex;
+    align-items: center;
+  }
+  .logo-container {
+    display: flex;
+    align-items: center;
+  }
+  .logo {
+    height: 40px;
+    margin-right: 15px;
+  }
+  #username {
+    margin-right: 15px; /* Add margin between username and logout button */
+  }
+  /* New flex container for left side of header */
+  .header-left {
+    display: flex;
+    align-items: center;
+  }
+</style>
+
+<header>
+  <div class="header-left">
+    <!-- Include the nav toggle button -->
+    {% include 'nav_menu.html' with nav_toggle_only=True %}
+    
+    <div class="logo-container">
+      <img src="{% static 'Lightidea Logo.png' %}" alt="Lightidea Logo" class="logo">
+      <h1 style="margin-top: 15px;">AlignIQ</h1>
+    </div>
+  </div>
+  <div class="user-info">
+    <span id="username">Welcome, User</span>
+    <button id="logoutBtn">Logout</button>
+  </div>
+</header>
