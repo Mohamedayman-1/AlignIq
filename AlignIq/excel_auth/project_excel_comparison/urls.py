@@ -29,7 +29,7 @@ from .views.database_views import (
 from .views.admin_views import ListUsersView, UpdateUserPermissionView
 
 # Utility views
-from .views.utility_views import GetSheetNamesView, GetFileHeaderView, dashboard_analytics, split_Lcsvs_View
+from .views.utility_views import GetSheetNamesView, GetFileHeaderView, dashboard_analytics, split_Lcsvs_View, CSVDownloadView, CSVZipDownloadView
 
 urlpatterns = [
     # Authentication endpoints
@@ -86,6 +86,8 @@ urlpatterns = [
     path('files/<int:file_id>/headers/', GetFileHeaderView.as_view(), name='get-file-header'),
     path('files/<int:file_id>/split-csv/', split_Lcsvs_View.as_view(), name='split-csv'),
     path('split-csv/', split_Lcsvs_View.as_view(), name='split-csv-upload'),
+    path('download-csv/<str:file_path>/', CSVDownloadView.as_view(), name='download-csv'),
+    path('download-csv-zip/', CSVZipDownloadView.as_view(), name='download-csv-zip'),
     path('dashboard/analytics/', dashboard_analytics, name='dashboard-analytics'),
     
     # Template endpoints

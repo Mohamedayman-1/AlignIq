@@ -48,38 +48,6 @@
       font-size: 1rem;
       box-sizing: border-box;
     }
-    .header-inputs {
-      background-color: #f8f9fa;
-      padding: 1rem;
-      border-radius: 4px;
-      margin-top: 1rem;
-    }
-    .header-row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-    .header-input {
-      flex: 1;
-      margin-right: 0.5rem;
-    }
-    .add-header-btn, .remove-header-btn {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      min-width: 80px;
-    }
-    .add-header-btn {
-      background-color: #28a745;
-      color: white;
-    }
-    .remove-header-btn {
-      background-color: #dc3545;
-      color: white;
-      margin-left: 0.5rem;
-    }
     .btn-primary {
       background-color: #3a5bb9;
       color: white;
@@ -131,7 +99,7 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    .file-info {
+    .upload-file-info {
       background-color: #e9ecef;
       padding: 1rem;
       border-radius: 4px;
@@ -164,6 +132,144 @@
     .step.completed {
       background-color: #28a745;
       color: white;
+    }
+    
+    /* File results section */
+    .results-section {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-top: 2rem;
+      display: none;
+    }
+    
+    .file-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    
+    .file-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .file-item:last-child {
+      border-bottom: none;
+    }
+    
+    .file-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .file-checkbox {
+      margin-right: 0.75rem;
+    }
+    
+    .file-info {
+      flex: 1;
+    }
+    
+    .file-name {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .file-size {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .file-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      color: white;
+    }
+    
+    .btn-download {
+      background-color: #17a2b8;
+    }
+    
+    .btn-download:hover {
+      background-color: #138496;
+    }
+    
+    .selection-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .select-all-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+    
+    .btn-success {
+      background-color: #28a745;
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .btn-success:hover {
+      background-color: #218838;
+    }
+    
+    .btn-success:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    
+    .stats-info {
+      background-color: #e9ecef;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stats-row:last-child {
+      margin-bottom: 0;
     }
   </style>
 </head>
@@ -200,7 +306,7 @@
         <div class="form-group">
           <label for="csvFile">Select CSV File:</label>
           <input type="file" id="csvFile" accept=".csv" required>
-          <div class="file-info" id="fileInfo"></div>
+          <div class="upload-file-info" id="fileInfo"></div>
         </div>
 
         <!-- Step 2: Configuration -->
@@ -227,16 +333,11 @@
           </div>
 
           <div class="form-group">
-            <label>Column Headers:</label>
+            <label for="headerInput">Column Headers:</label>
             <p style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
-              Define the column headers for your CSV file. Add one header per column.
+              Enter column headers separated by commas (e.g., "Name, Age, Email, Phone")
             </p>
-            <div class="header-inputs" id="headerInputs">
-              <div class="header-row">
-                <input type="text" class="header-input" placeholder="Enter header name" required>
-                <button type="button" class="add-header-btn" onclick="addHeaderInput()">+ Add</button>
-              </div>
-            </div>
+            <input type="text" id="headerInput" placeholder="Enter headers separated by commas" required>
           </div>
         </div>
 
@@ -247,6 +348,28 @@
 
         <button type="submit" class="btn-primary" id="submitBtn">Select File and Configure</button>
       </form>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-section" id="resultsSection">
+      <h2>Split Results</h2>
+      
+      <div class="stats-info" id="statsInfo">
+        <!-- Stats will be populated here -->
+      </div>
+      
+      <div class="selection-actions">
+        <div class="select-all-container">
+          <input type="checkbox" id="selectAll">
+          <label for="selectAll">Select All</label>
+        </div>
+        <button type="button" class="btn-secondary" onclick="resplitCSV()">Resplit with New Settings</button>
+        <button type="button" class="btn-success" id="downloadSelectedBtn" onclick="downloadSelected()" disabled>Download Selected</button>
+      </div>
+      
+      <div class="file-list" id="fileList">
+        <!-- File list will be populated here -->
+      </div>
     </div>
   </div>
 
@@ -263,6 +386,8 @@
     
     let currentStep = 1;
     let selectedFile = null;
+    let splitResults = null;
+    let isResplitting = false;
 
     // File upload handler
     document.getElementById('csvFile').addEventListener('change', function(e) {
@@ -300,14 +425,14 @@
     document.getElementById('csvSplitterForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
-      if (!selectedFile) {
+      if (!selectedFile && !isResplitting) {
         showAlert('Please select a CSV file first.', 'error');
         return;
       }
 
-      const headers = getHeaders();
-      if (headers.length === 0) {
-        showAlert('Please add at least one header.', 'error');
+      const headerInput = document.getElementById('headerInput').value.trim();
+      if (!headerInput) {
+        showAlert('Please enter column headers.', 'error');
         return;
       }
 
@@ -321,26 +446,35 @@
       }
 
       if (chunkSize < 10 || chunkSize > 1000000) {
-        showAlert('Chunk size must be between 100 and 1,000,000 rows.', 'error');
+        showAlert('Chunk size must be between 10 and 1,000,000 rows.', 'error');
         return;
       }
 
-      splitCSV(outputDir, headers, chunkSize, inputSep);
+      splitCSV(outputDir, headerInput, chunkSize, inputSep);
     });
 
     // Split CSV function
-    function splitCSV(outputDir, headers, chunkSize, inputSep) {
-      console.log('DEBUG: splitCSV called with:', { outputDir, headers, chunkSize, inputSep });
+    function splitCSV(outputDir, headerInput, chunkSize, inputSep) {
+      console.log('DEBUG: splitCSV called with:', { outputDir, headerInput, chunkSize, inputSep });
       console.log('DEBUG: selectedFile:', selectedFile);
+      console.log('DEBUG: isResplitting:', isResplitting);
       console.log('DEBUG: BASE_URL:', BASE_URL);
       
       showLoading(true);
       moveToStep(3);
       
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      
+      // Only append file if we're not resplitting
+      if (!isResplitting) {
+        formData.append('file', selectedFile);
+      } else {
+        // For resplitting, indicate we want to reuse the file
+        formData.append('reuse_file', 'true');
+      }
+      
       formData.append('output_dir', outputDir);
-      formData.append('header', JSON.stringify(headers));
+      formData.append('header', headerInput);
       formData.append('chunk_size', chunkSize);
       formData.append('input_sep', inputSep);
 
@@ -354,7 +488,6 @@
       
       const authToken = localStorage.getItem('authToken');
       console.log('DEBUG: Auth token:', authToken ? 'Token exists' : 'No token found');
-      console.log('DEBUG: Auth token length:', authToken ? authToken.length : 0);
 
       fetch(apiUrl, {
         method: 'POST',
@@ -365,18 +498,21 @@
       })
       .then(response => {
         console.log('DEBUG: Response status:', response.status);
-        console.log('DEBUG: Response headers:', response.headers);
         return response.json();
       })
       .then(data => {
         console.log('DEBUG: Response data:', data);
         showLoading(false);
-        if (data.zip_file_path) {
-          showAlert(`CSV split successfully! Files have been compressed to: ${data.zip_file_path.split('/').pop() || data.zip_file_path}`, 'success');
-          document.getElementById('submitBtn').textContent = 'Process Another File';
-          document.getElementById('submitBtn').onclick = function() {
-            location.reload();
-          };
+        
+        if (data.csv_files && data.csv_files.length > 0) {
+          splitResults = data;
+          displayResults(data);
+          showAlert(`CSV split successfully! Created ${data.chunks_created} files.`, 'success');
+          
+          // Update button to allow resplitting
+          document.getElementById('submitBtn').textContent = 'Resplit with New Settings';
+          isResplitting = true;
+          
         } else {
           showAlert(data.error || 'Failed to split CSV file.', 'error');
         }
@@ -388,37 +524,208 @@
       });
     }
 
-    // Header management functions
-    function addHeaderInput() {
-      const headerInputs = document.getElementById('headerInputs');
-      const newRow = document.createElement('div');
-      newRow.className = 'header-row';
-      newRow.innerHTML = `
-        <input type="text" class="header-input" placeholder="Enter header name" required>
-        <button type="button" class="remove-header-btn" onclick="removeHeaderInput(this)">Remove</button>
+    // Display results function
+    function displayResults(data) {
+      const resultsSection = document.getElementById('resultsSection');
+      const statsInfo = document.getElementById('statsInfo');
+      const fileList = document.getElementById('fileList');
+      
+      // Show results section
+      resultsSection.style.display = 'block';
+      
+      // Update stats
+      const totalSize = data.csv_files.reduce((sum, file) => sum + file.size, 0);
+      const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+      
+      statsInfo.innerHTML = `
+        <div class="stats-row">
+          <strong>Original File:</strong> 
+          <span>${data.original_filename || 'Unknown'}</span>
+        </div>
+        <div class="stats-row">
+          <strong>Files Created:</strong> 
+          <span>${data.chunks_created}</span>
+        </div>
+        <div class="stats-row">
+          <strong>Total Size:</strong> 
+          <span>${totalSizeMB} MB</span>
+        </div>
+        <div class="stats-row">
+          <strong>Output Directory:</strong> 
+          <span>${data.output_directory}</span>
+        </div>
       `;
-      headerInputs.appendChild(newRow);
-    }
-
-    function removeHeaderInput(button) {
-      const headerInputs = document.getElementById('headerInputs');
-      if (headerInputs.children.length > 1) {
-        button.parentElement.remove();
-      } else {
-        showAlert('At least one header is required.', 'error');
-      }
-    }
-
-    function getHeaders() {
-      const inputs = document.querySelectorAll('.header-input');
-      const headers = [];
-      inputs.forEach(input => {
-        const value = input.value.trim();
-        if (value) {
-          headers.push(value);
-        }
+      
+      // Update file list
+      fileList.innerHTML = '';
+      data.csv_files.forEach((file, index) => {
+        const fileSizeKB = (file.size / 1024).toFixed(2);
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        // Use the file's full path directly, but encode it safely for URL
+        const encodedPath = encodeURIComponent(file.full_path);
+        
+        fileItem.innerHTML = `
+          <input type="checkbox" class="file-checkbox" data-file-path="${file.full_path}" id="file-${index}">
+          <div class="file-info">
+            <div class="file-name">${file.filename}</div>
+            <div class="file-size">${fileSizeKB} KB</div>
+          </div>
+          <div class="file-actions">
+            <button class="btn-small btn-download" onclick="downloadSingleFile('${encodedPath}', '${file.filename}')">
+              Download
+            </button>
+          </div>
+        `;
+        fileList.appendChild(fileItem);
       });
-      return headers;
+      
+      // Setup event listeners
+      setupFileSelectionListeners();
+    }
+
+    // Setup file selection listeners
+    function setupFileSelectionListeners() {
+      const selectAllCheckbox = document.getElementById('selectAll');
+      const fileCheckboxes = document.querySelectorAll('.file-checkbox');
+      const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+      
+      // Select all functionality
+      selectAllCheckbox.addEventListener('change', function() {
+        fileCheckboxes.forEach(checkbox => {
+          checkbox.checked = this.checked;
+        });
+        updateDownloadButton();
+      });
+      
+      // Individual checkbox listeners
+      fileCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          const checkedCount = document.querySelectorAll('.file-checkbox:checked').length;
+          selectAllCheckbox.checked = checkedCount === fileCheckboxes.length;
+          selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < fileCheckboxes.length;
+          updateDownloadButton();
+        });
+      });
+    }
+
+    // Update download button state
+    function updateDownloadButton() {
+      const checkedCount = document.querySelectorAll('.file-checkbox:checked').length;
+      const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+      downloadSelectedBtn.disabled = checkedCount === 0;
+      downloadSelectedBtn.textContent = checkedCount === 0 ? 'Download Selected' : `Download Selected (${checkedCount})`;
+    }
+
+    // Download single file
+    function downloadSingleFile(encodedPath, filename) {
+      const authToken = localStorage.getItem('authToken');
+      
+      // Decode the path and encode it properly for the URL
+      const decodedPath = decodeURIComponent(encodedPath);
+      const base64Path = btoa(decodedPath);
+      const downloadUrl = `${BASE_URL}/api/download-csv/${base64Path}/`;
+      
+      console.log('DEBUG: Downloading single file:', filename);
+      console.log('DEBUG: Original path:', decodedPath);
+      console.log('DEBUG: Download URL:', downloadUrl);
+      
+      fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Download failed');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showAlert(`Downloaded ${filename} successfully!`, 'success');
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        showAlert('Error downloading file: ' + error.message, 'error');
+      });
+    }
+
+    // Download selected files
+    function downloadSelected() {
+      const selectedFiles = [];
+      document.querySelectorAll('.file-checkbox:checked').forEach(checkbox => {
+        selectedFiles.push(checkbox.getAttribute('data-file-path'));
+      });
+      
+      if (selectedFiles.length === 0) {
+        showAlert('Please select at least one file to download.', 'error');
+        return;
+      }
+      
+      console.log('DEBUG: Selected files for download:', selectedFiles);
+      
+      const authToken = localStorage.getItem('authToken');
+      const downloadUrl = `${BASE_URL}/api/download-csv-zip/`;
+      
+      fetch(downloadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selected_files: selectedFiles,
+          zip_name: 'selected_csv_files.zip'
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Download failed');
+        }
+        return response.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'selected_csv_files.zip';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showAlert(`Downloaded ${selectedFiles.length} files successfully!`, 'success');
+      })
+      .catch(error => {
+        console.error('Download error:', error);
+        showAlert('Error downloading files: ' + error.message, 'error');
+      });
+    }
+
+    // Resplit CSV with new settings
+    function resplitCSV() {
+      // Show configuration section again
+      document.getElementById('configSection').style.display = 'block';
+      
+      // Change button text
+      document.getElementById('submitBtn').textContent = 'Resplit with New Settings';
+      
+      // Move to step 2
+      moveToStep(2);
+      
+      // Hide results temporarily
+      document.getElementById('resultsSection').style.display = 'none';
+      
+      showAlert('Update your settings and click "Resplit with New Settings" to process the same file again.', 'success');
     }
 
     // UI helper functions

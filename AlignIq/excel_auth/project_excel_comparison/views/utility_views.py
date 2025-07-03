@@ -3,7 +3,7 @@ import os
 import tempfile
 import datetime
 from datetime import datetime, timedelta
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.db.models import Count
 from django.db.models.functions import TruncDay
 from rest_framework.views import APIView
@@ -16,6 +16,7 @@ from ..models import User, FileUpload, Comparison
 from ..funtions import get_sheet_names, get_header
 import pandas as pd
 import zipfile
+import shutil
 
 class GetSheetNamesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -43,11 +44,14 @@ class GetFileHeaderView(APIView):
         return Response({"columns": columns}, status=status.HTTP_200_OK)
 
 class split_Lcsvs_View(APIView):
-   
     permission_classes = [IsAuthenticated]
+    
+    # Class variable to store the last processed file data for reuse
+    last_processed_file = {}
 
     @staticmethod
     def split_large_csv(input_file, output_dir, header, rows_per_chunk=10000, input_sep=','):
+        """Split a large CSV file into smaller chunks with custom headers."""
         # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
     
@@ -67,31 +71,29 @@ class split_Lcsvs_View(APIView):
             chunk_count += 1
             print(f"Saved {output_file}")
     
-        # After all chunks are saved, compress the output folder
-        zip_file_path = f"{output_dir}.zip"
-        with zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for foldername, _, filenames in os.walk(output_dir):
-                for filename in filenames:
-                    file_path = os.path.join(foldername, filename)
-                    arcname = os.path.relpath(file_path, output_dir)  # relative path inside the zip
-                    zipf.write(file_path, arcname)
-        
-        print(f"Compressed {chunk_count} files to {zip_file_path}")
-        
-        # Clean up the output directory after zipping
-        # import shutil
-        # try:
-        #     shutil.rmtree(output_dir)
-        # except:
-        #     pass
-        
-        # Return the path of the zip file
-        return zip_file_path
+        return chunk_count
 
     def post(self, request, file_id=None):
         try:
-            # Check if file is uploaded directly in this request
-            if 'file' in request.FILES:
+            user_id = request.user.id
+            
+            # Check if we should reuse the last processed file
+            reuse_file = request.POST.get('reuse_file', 'false').lower() == 'true'
+            
+            if reuse_file and user_id in self.last_processed_file:
+                # Reuse the last processed file
+                file_path = self.last_processed_file[user_id]['file_path']
+                
+                # Verify file still exists
+                if not os.path.exists(file_path):
+                    return Response({"error": "Previously uploaded file no longer exists. Please upload a new file."}, 
+                                  status=status.HTTP_400_BAD_REQUEST)
+                
+                original_filename = self.last_processed_file[user_id]['original_filename']
+                print(f"Reusing file: {original_filename}")
+                
+            elif 'file' in request.FILES:
+                # Handle new file upload
                 uploaded_file = request.FILES['file']
                 
                 # Validate file type
@@ -99,32 +101,46 @@ class split_Lcsvs_View(APIView):
                     return Response({"error": "Please upload a CSV file."}, status=status.HTTP_400_BAD_REQUEST)
                 
                 # Save file temporarily
-                import tempfile
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
                     for chunk in uploaded_file.chunks():
                         temp_file.write(chunk)
                     temp_file_path = temp_file.name
                 
                 file_path = temp_file_path
+                original_filename = uploaded_file.name
+                
+                # Store for potential reuse
+                self.last_processed_file[user_id] = {
+                    'file_path': file_path,
+                    'original_filename': original_filename,
+                    'upload_time': datetime.now()
+                }
+                
+                print(f"New file uploaded: {original_filename}")
                 
             elif file_id:
-                # Use existing uploaded file
+                # Use existing uploaded file from database
                 file_upload = FileUpload.objects.get(id=file_id, user=request.user)
                 if not file_upload.file.name.endswith('.csv'):
                     return Response({"error": "File is not a CSV."}, status=status.HTTP_400_BAD_REQUEST)
                 file_path = file_upload.file.path
+                original_filename = file_upload.file.name
+                
             else:
                 return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Get parameters from request
-            if 'file' in request.FILES:
+            if 'file' in request.FILES or reuse_file:
                 # Handle form data
                 output_dir = request.POST.get('output_dir', 'output_chunks')
-                header_json = request.POST.get('header', '[]')
-                try:
-                    header = json.loads(header_json)
-                except json.JSONDecodeError:
+                header_str = request.POST.get('header', '')
+                
+                # Parse comma-separated headers
+                if header_str:
+                    header = [h.strip() for h in header_str.split(',') if h.strip()]
+                else:
                     header = []
+                    
                 rows_per_chunk = int(request.POST.get('chunk_size', 10000))
                 input_sep = request.POST.get('input_sep', ',')
             else:
@@ -142,46 +158,151 @@ class split_Lcsvs_View(APIView):
             unique_output_dir = f"{output_dir}_{timestamp}"
 
             # Call the static method to split the CSV
-            zip_file_path = self.split_large_csv(
+            chunk_count = self.split_large_csv(
                 input_file=file_path,
                 output_dir=unique_output_dir,
                 header=header,
                 rows_per_chunk=rows_per_chunk,
                 input_sep=input_sep
             )
+
+            # Get list of created CSV files
+            csv_files = []
+            if os.path.exists(unique_output_dir):
+                for root, dirs, files in os.walk(unique_output_dir):
+                    for file in files:
+                        if file.lower().endswith('.csv'):
+                            file_path_full = os.path.join(root, file)
+                            file_size = os.path.getsize(file_path_full) if os.path.exists(file_path_full) else 0
+                            
+                            csv_files.append({
+                                'filename': file,
+                                'full_path': file_path_full,
+                                'relative_path': os.path.relpath(file_path_full, unique_output_dir),
+                                'size': file_size
+                            })
+                            
+                            print(f"DEBUG: Found CSV file: {file} ({file_size} bytes)")
             
-            # Clean up temporary file if it was created
-            if 'file' in request.FILES:
-                try:
-                    os.unlink(temp_file_path)
-                except:
-                    pass
+            # Sort CSV files by filename for consistent ordering
+            csv_files.sort(key=lambda x: x['filename'])
             
-            # Estimate chunks created based on file size and chunk size
-            chunks_created = "Unknown"
-            try:
-                if os.path.exists(zip_file_path):
-                    chunks_created = "Multiple chunks compressed"
-            except:
-                pass
+            print(f"DEBUG: Total CSV files found: {len(csv_files)}")
             
             return Response({
-                "zip_file_path": zip_file_path, 
+                "csv_files": csv_files,
                 "message": "CSV split successfully",
                 "output_directory": unique_output_dir,
-                "chunks_created": chunks_created
+                "chunks_created": chunk_count,
+                "original_filename": original_filename if 'original_filename' in locals() else "Unknown"
             }, status=status.HTTP_200_OK)
             
         except FileUpload.DoesNotExist:
             return Response({"error": "File not found or not yours."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print(f"Error in split_Lcsvs_View: {str(e)}")
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CSVDownloadView(APIView):
+    """Download individual CSV files from split results."""
+    permission_classes = [IsAuthenticated]
     
+    def get(self, request, file_path):
+        try:
+            # Decode the file path (it's base64 encoded)
+            import base64
+            try:
+                decoded_path = base64.b64decode(file_path).decode('utf-8')
+                print(f"DEBUG: Decoded file path: {decoded_path}")
+            except Exception as e:
+                print(f"DEBUG: Failed to decode path: {e}")
+                decoded_path = file_path
+            
+            # Security check: ensure file exists and is within expected directory
+            if not os.path.exists(decoded_path):
+                print(f"DEBUG: File not found: {decoded_path}")
+                raise Http404("File not found")
+            
+            # Additional security: ensure path doesn't contain directory traversal
+            if '..' in decoded_path:
+                print(f"DEBUG: Directory traversal detected: {decoded_path}")
+                raise Http404("Invalid file path")
+            
+            # Check if file is a CSV
+            if not decoded_path.lower().endswith('.csv'):
+                print(f"DEBUG: Not a CSV file: {decoded_path}")
+                raise Http404("Invalid file type")
+            
+            print(f"DEBUG: Serving file: {decoded_path}")
+            
+            with open(decoded_path, 'rb') as f:
+                response = HttpResponse(f.read(), content_type='text/csv')
+                response['Content-Disposition'] = f'attachment; filename="{os.path.basename(decoded_path)}"'
+                return response
+                
+        except Exception as e:
+            print(f"Error in CSVDownloadView: {str(e)}")
+            raise Http404("File not found")
 
 
-
-
-
+class CSVZipDownloadView(APIView):
+    """Download selected CSV files as a ZIP archive."""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            selected_files = request.data.get('selected_files', [])
+            zip_name = request.data.get('zip_name', 'selected_files.zip')
+            
+            print(f"DEBUG: Received request to zip {len(selected_files)} files")
+            print(f"DEBUG: Selected files: {selected_files}")
+            
+            if not selected_files:
+                return Response({"error": "No files selected"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create a temporary ZIP file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
+                with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for file_path in selected_files:
+                        print(f"DEBUG: Processing file: {file_path}")
+                        
+                        # Security checks
+                        if not os.path.exists(file_path):
+                            print(f"DEBUG: File not found: {file_path}")
+                            continue
+                        
+                        if '..' in file_path:
+                            print(f"DEBUG: Directory traversal detected: {file_path}")
+                            continue
+                        
+                        if not file_path.lower().endswith('.csv'):
+                            print(f"DEBUG: Not a CSV file: {file_path}")
+                            continue
+                        
+                        # Add file to ZIP
+                        arcname = os.path.basename(file_path)
+                        zipf.write(file_path, arcname)
+                        print(f"DEBUG: Added to ZIP: {arcname}")
+                
+                # Return the ZIP file
+                with open(temp_zip.name, 'rb') as f:
+                    response = HttpResponse(f.read(), content_type='application/zip')
+                    response['Content-Disposition'] = f'attachment; filename="{zip_name}"'
+                
+                # Clean up temp file
+                try:
+                    os.unlink(temp_zip.name)
+                except:
+                    pass
+                
+                print(f"DEBUG: ZIP file created and sent: {zip_name}")
+                return response
+                
+        except Exception as e:
+            print(f"Error in CSVZipDownloadView: {str(e)}")
+            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_analytics(request):
