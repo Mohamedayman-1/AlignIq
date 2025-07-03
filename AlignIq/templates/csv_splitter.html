@@ -376,11 +376,10 @@
   <script src="{% static 'confg.js' %}"></script>
   <script>
     // Ensure BASE_URL is defined - try multiple fallbacks
-    let BASE_URL;
     try {
-      BASE_URL = (typeof getConfig !== 'undefined') ? getConfig() : 'http://127.0.0.1:8000';
+      let BASE_URL = (typeof getConfig !== 'undefined') ? getConfig() : 'http://127.0.0.1:8000';
     } catch (e) {
-      BASE_URL = 'http://127.0.0.1:8000';
+      let BASE_URL = 'http://127.0.0.1:8000';
     }
     console.log('DEBUG: BASE_URL set to:', BASE_URL);
     
