@@ -256,8 +256,9 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script src="{% static 'confg.js' %}"></script>
   <script>
-    const apiBaseUrl = "http://127.0.0.1:8000";
+    const apiBaseUrl = BASE_URL; // Use dynamic BASE_URL from confg.js
     let comparisons = [];
     let currentPage = 1;
     let totalPages = 1;
@@ -911,8 +912,33 @@
         window.location.href = `${apiBaseUrl}/`;
         return;
       }
+      
+      // Set username in header
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      if (userData.username) {
+        const usernameElement = document.getElementById('username');
+        if (usernameElement) {
+          usernameElement.textContent = `Welcome, ${userData.username}`;
+        }
+      }
+      
+      // Setup logout functionality
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          window.location.href = '/';
+        });
+      }
+      
       fetchComparisons(1);
     });
+
+    // Navigation function for menu
+    function navigateTo(url) {
+      window.location.href = url;
+    }
 
     window.onclick = function(event) {
       const modal = document.getElementById('comparisonModal');

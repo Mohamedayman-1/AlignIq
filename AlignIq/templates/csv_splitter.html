@@ -375,13 +375,7 @@
 
   <script src="{% static 'confg.js' %}"></script>
   <script>
-    // Ensure BASE_URL is defined - try multiple fallbacks
-    let BASE_URL;
-    try {
-      BASE_URL = (typeof getConfig !== 'undefined') ? getConfig() : 'http://127.0.0.1:8000';
-    } catch (e) {
-      BASE_URL = 'http://127.0.0.1:8000';
-    }
+    // BASE_URL is already defined in confg.js
     console.log('DEBUG: BASE_URL set to:', BASE_URL);
     
     // Navigation function
@@ -682,6 +676,10 @@
       const authToken = localStorage.getItem('authToken');
       const downloadUrl = `${BASE_URL}/api/download-csv-zip/`;
       
+      // Get original filename from splitResults and create zip name
+      const originalFilename = splitResults?.original_filename || 'selected_csv_files';
+      const zipName = originalFilename.replace(/\.[^/.]+$/, '') + '_chunks.zip'; // Remove extension and add _chunks
+      
       fetch(downloadUrl, {
         method: 'POST',
         headers: {
@@ -690,7 +688,7 @@
         },
         body: JSON.stringify({
           selected_files: selectedFiles,
-          zip_name: 'selected_csv_files.zip'
+          zip_name: zipName
         })
       })
       .then(response => {
@@ -703,7 +701,7 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'selected_csv_files.zip';
+        a.download = zipName; // Use the dynamic zip name
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

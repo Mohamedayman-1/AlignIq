@@ -50,7 +50,7 @@ class split_Lcsvs_View(APIView):
     last_processed_file = {}
 
     @staticmethod
-    def split_large_csv(input_file, output_dir, header, rows_per_chunk=10000, input_sep=','):
+    def split_large_csv(input_file, output_dir, header, rows_per_chunk=10000, input_sep=',', filename=None):
         """Split a large CSV file into smaller chunks with custom headers."""
         # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
@@ -66,7 +66,7 @@ class split_Lcsvs_View(APIView):
             # Assign the provided header to the chunk columns
             chunk.columns = header[:len(chunk.columns)]  # Ensure header matches column count
             # Construct output file path with 1-based index
-            output_file = os.path.join(output_dir, f"{base_name}_{i + 1}.csv")
+            output_file = os.path.join(output_dir, f"{filename}_{i + 1}.csv")
             chunk.to_csv(output_file, index=False, sep=',')
             chunk_count += 1
             print(f"Saved {output_file}")
@@ -163,7 +163,8 @@ class split_Lcsvs_View(APIView):
                 output_dir=unique_output_dir,
                 header=header,
                 rows_per_chunk=rows_per_chunk,
-                input_sep=input_sep
+                input_sep=input_sep,
+                filename=original_filename
             )
 
             # Get list of created CSV files
