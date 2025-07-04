@@ -1,0 +1,70 @@
+# Django Framework
+Django==5.1.7
+
+# Django REST Framework and Authentication
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.0
+
+# CORS handling for frontend
+django-cors-headers==4.3.1
+
+# Excel/CSV processing
+pandas==2.1.4
+openpyxl==3.1.2
+numpy==1.24.4
+
+# Database connections
+oracledb==2.0.1
+
+# File encryption and security
+cryptography==41.0.8
+
+# JSON handling (built into Python, but specifying for clarity)
+# json - built-in module
+
+# File handling and utilities
+Pillow==10.1.0
+
+# Additional utilities that might be needed
+python-dateutil==2.8.2
+pytz==2023.3
+
+# For production deployment (optional)
+gunicorn==21.2.0
+whitenoise==6.6.0
+
+# Development and testing (optional)
+python-decouple==3.8
+
+# Database drivers (if you need MySQL or PostgreSQL)
+# Uncomment if needed:
+# psycopg2-binary==2.9.9  # for PostgreSQL
+# mysqlclient==2.2.0      # for MySQL
+
+# For better CSV handling
+chardet==5.2.0
+
+# Memory optimization
+memory-profiler==0.61.0
+
+# For handling large files
+xlrd==2.0.1
+xlsxwriter==3.1.9
+
+# Additional security
+django-ratelimit==4.1.0
+
+# For better file handling
+pathlib2==2.3.7
+
+# System utilities
+psutil==5.9.6
+
+# Timezone handling
+zoneinfo==0.2.1
+
+# For API documentation (optional)
+# drf-spectacular==0.26.5
+
+# For environment variables
+python-dotenv==1.0.0
